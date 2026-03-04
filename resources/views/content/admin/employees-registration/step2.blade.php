@@ -5,6 +5,7 @@
   <div>
     <h6 class="wz-panel-title">Address Information</h6>
     <p class="wz-panel-sub text-warning">Fill in from top to bottom. Each field unlocks after the one above is selected.
+      Put N/A if not applicable.
     </p>
   </div>
 </div>
@@ -72,11 +73,11 @@
   </div>
 
   {{-- 5. Street — unlocks after Barangay --}}
-  <div class="col-md-5">
+  <div class="col-md-4">
     <label class="form-label">Street</label>
     <input type="text" id="perm_street" name="permanent[street]"
-      class="form-control @error('permanent.street') is-invalid @enderror" placeholder="Rizal Ave."
-      value="{{ old('permanent.street') }}" disabled>
+      class="form-control @error('permanent.street') is-invalid @enderror" value="{{ old('permanent.street') }}"
+      disabled>
     @error('permanent.street')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
@@ -86,7 +87,7 @@
   <div class="col-md-4">
     <label class="form-label">Subdivision / Village</label>
     <input type="text" id="perm_subdivision" name="permanent[subdivision]"
-      class="form-control @error('permanent.subdivision') is-invalid @enderror" placeholder="Green Park Subd."
+      class="form-control @error('permanent.subdivision') is-invalid @enderror"
       value="{{ old('permanent.subdivision') }}" disabled>
     @error('permanent.subdivision')
       <div class="invalid-feedback">{{ $message }}</div>
@@ -94,10 +95,10 @@
   </div>
 
   {{-- 7. House No — unlocks after Barangay --}}
-  <div class="col-md-3">
+  <div class="col-md-4">
     <label class="form-label">House / Unit No.</label>
     <input type="text" id="perm_house_number" name="permanent[house_number]"
-      class="form-control @error('permanent.house_number') is-invalid @enderror" placeholder="123"
+      class="form-control @error('permanent.house_number') is-invalid @enderror"
       value="{{ old('permanent.house_number') }}" disabled>
     @error('permanent.house_number')
       <div class="invalid-feedback">{{ $message }}</div>
@@ -108,8 +109,8 @@
   <div class="col-md-2">
     <label class="form-label">ZIP Code</label>
     <input type="text" id="perm_zip_code" name="permanent[zip_code]"
-      class="form-control @error('permanent.zip_code') is-invalid @enderror" placeholder="1100"
-      value="{{ old('permanent.zip_code') }}" disabled>
+      class="form-control @error('permanent.zip_code') is-invalid @enderror" value="{{ old('permanent.zip_code') }}"
+      disabled>
     @error('permanent.zip_code')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
@@ -144,7 +145,7 @@
     </select>
     <input type="hidden" name="current[region]" id="curr_region_name" value="{{ old('current.region') }}">
     <input type="hidden" name="current[region_code]" id="curr_region_code"
-      value="{{ old('current.region_code') }}">
+      value="{{ old('current.region_code') }}" required>
     @error('current.region')
       <div class="invalid-feedback d-block">{{ $message }}</div>
     @enderror
@@ -158,7 +159,7 @@
     </select>
     <input type="hidden" name="current[province]" id="curr_province_name" value="{{ old('current.province') }}">
     <input type="hidden" name="current[province_code]" id="curr_province_code"
-      value="{{ old('current.province_code') }}">
+      value="{{ old('current.province_code') }}" required>
     @error('current.province')
       <div class="invalid-feedback d-block">{{ $message }}</div>
     @enderror
@@ -193,8 +194,8 @@
   <div class="col-md-5">
     <label class="form-label">Street</label>
     <input type="text" id="curr_street" name="current[street]"
-      class="form-control @error('current.street') is-invalid @enderror" placeholder="Rizal Ave."
-      value="{{ old('current.street') }}" disabled>
+      class="form-control @error('current.street') is-invalid @enderror" value="{{ old('current.street') }}"
+      disabled>
     @error('current.street')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
@@ -204,7 +205,7 @@
   <div class="col-md-4">
     <label class="form-label">Subdivision / Village</label>
     <input type="text" id="curr_subdivision" name="current[subdivision]"
-      class="form-control @error('current.subdivision') is-invalid @enderror" placeholder="Green Park Subd."
+      class="form-control @error('current.subdivision') is-invalid @enderror"
       value="{{ old('current.subdivision') }}" disabled>
     @error('current.subdivision')
       <div class="invalid-feedback">{{ $message }}</div>
@@ -215,7 +216,7 @@
   <div class="col-md-3">
     <label class="form-label">House / Unit No.</label>
     <input type="text" id="curr_house_number" name="current[house_number]"
-      class="form-control @error('current.house_number') is-invalid @enderror" placeholder="123"
+      class="form-control @error('current.house_number') is-invalid @enderror"
       value="{{ old('current.house_number') }}" disabled>
     @error('current.house_number')
       <div class="invalid-feedback">{{ $message }}</div>
@@ -226,8 +227,8 @@
   <div class="col-md-2">
     <label class="form-label">ZIP Code</label>
     <input type="text" id="curr_zip_code" name="current[zip_code]"
-      class="form-control @error('current.zip_code') is-invalid @enderror" placeholder="1100"
-      value="{{ old('current.zip_code') }}" disabled>
+      class="form-control @error('current.zip_code') is-invalid @enderror" value="{{ old('current.zip_code') }}"
+      disabled>
     @error('current.zip_code')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror

@@ -15,6 +15,15 @@ const EDU_LEVELS = [
   { id: 5, name: 'Graduate Studies', placeholder: 'e.g. Ateneo de Manila University' }
 ];
 
+const REVIEW_SECTION_LABELS = [
+  { icon: 'ri-user-3-line', text: 'Personal Information' },
+  { icon: 'ri-map-pin-line', text: 'Address Information' },
+  { icon: 'ri-team-line', text: 'Family Background' },
+  { icon: 'ri-book-open-line', text: 'Education & Government IDs' }
+];
+
+const NO_SPOUSE_STATUSES = ['single', 'widow'];
+
 // ─────────────────────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────────────────────
@@ -40,9 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const eduMeta = document.getElementById('eduMeta');
   if (eduMeta) {
-    const oldCount = parseInt(eduMeta.dataset.oldCount) || 0;
-    state.nextEduLevel = Math.min(oldCount, EDU_LEVELS.length);
-    state.eduRowIdx = oldCount;
+    const n = parseInt(eduMeta.dataset.oldCount) || 0;
+    state.nextEduLevel = Math.min(n, EDU_LEVELS.length);
+    state.eduRowIdx = n;
   }
 
   initPanels();
@@ -53,8 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initPanels() {
   for (let i = 1; i <= TOTAL_STEPS; i++) {
-    const panel = document.getElementById(`panel-${i}`);
-    if (panel) panel.style.display = i === 1 ? 'block' : 'none';
+    const p = document.getElementById(`panel-${i}`);
+    if (p) p.style.display = i === 1 ? 'block' : 'none';
   }
   document.getElementById('wzFill').style.width = '0%';
 }
@@ -63,6 +72,16 @@ function bindButtons() {
   document.getElementById('addChildBtn')?.addEventListener('click', addChildRow);
   document.getElementById('addEduBtn')?.addEventListener('click', addEduRow);
   document.getElementById('addGovIdBtn')?.addEventListener('click', addGovIdRow);
+  document.querySelector('[name="civil_status"]')?.addEventListener('change', syncSpouseFields);
+
+  // Re-enable ALL disabled inputs before submit so the browser includes them in the POST.
+  // Disabled address fields (street, subdivision, house_number, zip_code) would otherwise
+  // be silently omitted, causing the controller to receive empty address data.
+  document.getElementById('wizardForm')?.addEventListener('submit', () => {
+    document.querySelectorAll('#wizardForm input:disabled, #wizardForm select:disabled').forEach(el => {
+      el.disabled = false;
+    });
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -73,19 +92,25 @@ function changeStep(dir) {
   if (dir === 1 && !validateStep(state.currentStep)) return;
   const next = state.currentStep + dir;
   if (next < 1 || next > TOTAL_STEPS) return;
-  if (next === TOTAL_STEPS) buildReview();
   goStep(next);
 }
 
 function goStep(step) {
+  // Leaving review → restore panels 1-4 back to wizardPanelHost
+  if (state.currentStep === TOTAL_STEPS && step !== TOTAL_STEPS) {
+    restorePanelsFromReview();
+  }
+
+  // Hide all panels
   for (let i = 1; i <= TOTAL_STEPS; i++) {
-    const panel = document.getElementById(`panel-${i}`);
-    if (panel) {
-      panel.classList.remove('active');
-      panel.style.display = 'none';
+    const p = document.getElementById(`panel-${i}`);
+    if (p) {
+      p.classList.remove('active');
+      p.style.display = 'none';
     }
   }
 
+  // Update step indicators
   document.querySelectorAll('.wz-step').forEach(el => {
     const s = parseInt(el.dataset.step);
     el.classList.remove('active', 'completed');
@@ -93,6 +118,7 @@ function goStep(step) {
     else if (s === step) el.classList.add('active');
   });
 
+  // Show target panel
   state.currentStep = step;
   const target = document.getElementById(`panel-${step}`);
   if (target) {
@@ -100,12 +126,76 @@ function goStep(step) {
     target.style.display = 'block';
   }
 
+  // Progress bar & footer buttons
   document.getElementById('wzFill').style.width = `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%`;
   document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'inline-flex';
   document.getElementById('nextBtn').style.display = step === TOTAL_STEPS ? 'none' : 'inline-flex';
   document.getElementById('submitBtn').style.display = step === TOTAL_STEPS ? 'inline-flex' : 'none';
 
+  // Spouse sync on step 3
+  if (step === 3) syncSpouseFields();
+
+  // Entering review → mount real panels into scroll container
+  if (step === TOTAL_STEPS) {
+    mountPanelsIntoReview();
+    syncSpouseFields();
+  }
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  REVIEW — move / restore real panels
+//  Physically moves panel-1 … panel-4 into #reviewScroll so
+//  the user sees their actual filled values with no cloning.
+//  Restores them to #wizardPanelHost when navigating back.
+// ─────────────────────────────────────────────────────────────
+
+function mountPanelsIntoReview() {
+  const scroll = document.getElementById('reviewScroll');
+  const host = document.getElementById('wizardPanelHost');
+  if (!scroll || !host) return;
+
+  scroll.innerHTML = '';
+
+  for (let i = 1; i <= TOTAL_STEPS - 1; i++) {
+    const panel = document.getElementById(`panel-${i}`);
+    if (!panel) continue;
+
+    // Sticky coloured section header
+    const lbl = REVIEW_SECTION_LABELS[i - 1];
+    const header = document.createElement('div');
+    header.className = 'review-section-header';
+    header.innerHTML = `<i class="ri ${lbl.icon} me-2"></i>${lbl.text}`;
+    scroll.appendChild(header);
+
+    // Move the real panel in, make it visible
+    panel.style.display = 'block';
+    panel.style.paddingTop = '0';
+    scroll.appendChild(panel);
+
+    // Divider between sections
+    if (i < TOTAL_STEPS - 1) {
+      const hr = document.createElement('hr');
+      hr.className = 'review-divider';
+      scroll.appendChild(hr);
+    }
+  }
+
+  scroll.scrollTop = 0;
+}
+
+function restorePanelsFromReview() {
+  const host = document.getElementById('wizardPanelHost');
+  if (!host) return;
+
+  for (let i = 1; i <= TOTAL_STEPS - 1; i++) {
+    const panel = document.getElementById(`panel-${i}`);
+    if (!panel) continue;
+    panel.style.display = 'none';
+    panel.style.paddingTop = '';
+    host.appendChild(panel);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -114,12 +204,16 @@ function goStep(step) {
 
 function validateStep(step) {
   const panel = document.getElementById(`panel-${step}`);
-  const fields = panel.querySelectorAll('[required]');
+  if (!panel) return true;
+
+  // Only validate fields that are visible and not disabled
+  const fields = [...panel.querySelectorAll('[required]')].filter(f => !f.disabled);
   let valid = true;
 
   fields.forEach(field => {
     field.classList.remove('is-invalid');
-    if (!field.value.trim()) {
+    const empty = field.tagName === 'SELECT' ? field.value === '' || field.value === null : !field.value.trim();
+    if (empty) {
       field.classList.add('is-invalid');
       valid = false;
     }
@@ -129,6 +223,32 @@ function validateStep(step) {
     panel.querySelector('.is-invalid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   return valid;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SPOUSE FIELDS
+// ─────────────────────────────────────────────────────────────
+
+function syncSpouseFields() {
+  const status = document.querySelector('[name="civil_status"]')?.value?.toLowerCase() || '';
+  const noSpouse = NO_SPOUSE_STATUSES.includes(status);
+
+  ['spouse_name', 'spouse_occupation', 'spouse_employer', 'spouse_business_address'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (noSpouse) {
+      el.value = '';
+      el.disabled = true;
+      el.classList.remove('is-invalid');
+    } else {
+      el.disabled = false;
+    }
+  });
+
+  const notice = document.getElementById('spouseNotice');
+  if (notice) {
+    notice.style.setProperty('display', noSpouse ? 'flex' : 'none', 'important');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -158,10 +278,10 @@ function addEduRow() {
 
 function removeEduRow(btn) {
   btn.closest('.edu-row').remove();
-  const usedLevels = new Set(
-    [...document.querySelectorAll('#educationContainer .edu-row')].map(row => parseInt(row.dataset.level))
+  const used = new Set(
+    [...document.querySelectorAll('#educationContainer .edu-row')].map(r => parseInt(r.dataset.level))
   );
-  const found = EDU_LEVELS.findIndex(l => !usedLevels.has(l.id));
+  const found = EDU_LEVELS.findIndex(l => !used.has(l.id));
   state.nextEduLevel = found === -1 ? EDU_LEVELS.length : found;
   syncEduButton();
 }
@@ -254,7 +374,8 @@ function addChildRow() {
     <div class="child-row row g-2 align-items-end mt-2">
       <div class="col-md-6">
         <label class="form-label">Child's Full Name</label>
-        <input type="text" name="children[${idx}][child_name]" class="form-control" placeholder="Full Name">
+        <input type="text" name="children[${idx}][child_name]" class="form-control"
+          placeholder="Full Name">
       </div>
       <div class="col-md-4">
         <label class="form-label">Date of Birth</label>
@@ -271,7 +392,7 @@ function addChildRow() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  COPY ADDRESS — "same as permanent" checkbox
+//  COPY ADDRESS  ("same as permanent" checkbox)
 // ─────────────────────────────────────────────────────────────
 
 function copyAddress(checkbox) {
@@ -283,123 +404,23 @@ function copyAddress(checkbox) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  REVIEW
-// ─────────────────────────────────────────────────────────────
-
-function buildReview() {
-  const val = name => document.querySelector(`[name="${name}"]`)?.value?.trim() || '—';
-  const sel = name => {
-    const el = document.querySelector(`[name="${name}"]`);
-    return el?.options?.[el.selectedIndex]?.text || el?.value || '—';
-  };
-
-  // Build a formatted address string from hidden inputs
-  const addr = prefix => {
-    const parts = [
-      val(`${prefix}[house_number]`),
-      val(`${prefix}[street]`),
-      val(`${prefix}[subdivision]`),
-      val(`${prefix}[barangay]`),
-      val(`${prefix}[city]`),
-      val(`${prefix}[province]`),
-      val(`${prefix}[region]`)
-    ].filter(v => v && v !== '—');
-    return parts.join(', ') || '—';
-  };
-
-  const mid = val('middle_name') !== '—' ? `${val('middle_name')} ` : '';
-
-  setHTML(
-    'rv-personal',
-    `
-    <strong>${val('first_name')} ${mid}${val('last_name')}</strong><br>
-    Emp No: ${val('employee_number')}<br>
-    DOB: ${val('date_of_birth')} &nbsp;|&nbsp; Gender: ${sel('gender')}<br>
-    Civil Status: ${sel('civil_status')} &nbsp;|&nbsp; Blood Type: ${sel('blood_type')}<br>
-    Mobile: ${val('mobile_number')}<br>
-    Citizenship: ${val('citizenship')}
-  `
-  );
-
-  setHTML(
-    'rv-address',
-    `
-    <strong>Permanent:</strong><br>${addr('permanent')}<br><br>
-    <strong>Current:</strong><br>${addr('current')}
-  `
-  );
-
-  setHTML(
-    'rv-family',
-    `
-    Father: ${val('family[father_name]')}<br>
-    Mother: ${val('family[mother_name]')}<br>
-    Spouse: ${val('family[spouse_name]')}<br>
-    <strong>Emergency:</strong> ${val('family[emergency_contact_name]')} — ${val('family[emergency_contact_number]')}
-  `
-  );
-
-  const eduLines = [...document.querySelectorAll('#educationContainer .edu-row')].map(row => {
-    const levelId = parseInt(row.dataset.level);
-    const levelName = EDU_LEVELS.find(l => l.id === levelId)?.name || 'Education';
-    const school = row.querySelector('[name$="[school_name]"]')?.value || '—';
-    return `• <strong>${levelName}:</strong> ${school}`;
-  });
-
-  const govLines = [...document.querySelectorAll('#govIdsContainer .govid-row input[type="text"]')]
-    .map(el => el.value)
-    .filter(Boolean)
-    .map(v => `• ${v}`);
-
-  setHTML(
-    'rv-education',
-    `
-    <strong>Education:</strong><br>
-    ${eduLines.length ? eduLines.join('<br>') : '—'}
-    <br><br>
-    <strong>Gov IDs:</strong><br>
-    ${govLines.length ? govLines.join('<br>') : '—'}
-  `
-  );
-}
-
-function setHTML(id, html) {
-  const el = document.getElementById(id);
-  if (el) el.innerHTML = html;
-}
-
-// ─────────────────────────────────────────────────────────────
 //  ADDRESS MODULE — PSGC Cascading + Strict Unlock Chain
 //
-//  Unlock order per address block:
-//    1. Region   (always available on load)
-//    2. Province (unlocks when Region is chosen)
-//    3. City     (unlocks when Province is chosen)
-//    4. Barangay (unlocks when City is chosen)
-//    5. Street, Subdivision, House No., ZIP
-//       (all unlock together when Barangay is chosen)
+//  Order per block:  Region → Province → City → Barangay
+//                    → Street / Subdivision / House No. / ZIP
 //
-//  Clearing a field re-locks everything below it.
-//
-//  Proxy routes (web.php):
-//    GET /admin/psgc/regions
-//    GET /admin/psgc/regions/{code}/provinces
-//    GET /admin/psgc/provinces/{code}/cities
-//    GET /admin/psgc/cities/{code}/barangays
+//  Each field unlocks only after the one above is chosen.
+//  Changing a parent re-locks all children.
 // ─────────────────────────────────────────────────────────────
 
 const Address = (() => {
   'use strict';
 
   const BASE = '/admin/psgc';
+  const cache = {}; // in-memory fetch cache
+  const ts = {}; // TomSelect instances keyed by element id
 
-  // In-memory fetch cache — avoids re-hitting the proxy
-  const cache = {};
-
-  // TomSelect instances keyed by element id
-  const ts = {};
-
-  // ── Fetch with cache ──────────────────────────────────────
+  // ── fetch with cache ────────────────────────────────────────
   async function apiFetch(url) {
     if (cache[url]) return cache[url];
     const res = await fetch(url);
@@ -408,7 +429,7 @@ const Address = (() => {
     return cache[url];
   }
 
-  // ── Create TomSelect on a <select> ────────────────────────
+  // ── TomSelect helpers ───────────────────────────────────────
   function makeTs(id) {
     if (ts[id]) {
       ts[id].destroy();
@@ -426,7 +447,6 @@ const Address = (() => {
     return ts[id];
   }
 
-  // ── Fill a TomSelect with PSGC items ─────────────────────
   function populate(id, items, placeholder) {
     const inst = ts[id];
     if (!inst) return;
@@ -439,7 +459,6 @@ const Address = (() => {
     inst.refreshOptions(false);
   }
 
-  // ── Disable a select and clear it back to placeholder ─────
   function lockSelect(id, placeholder) {
     const inst = ts[id];
     if (!inst) return;
@@ -450,7 +469,7 @@ const Address = (() => {
     inst.disable();
   }
 
-  // ── Disable a plain text input and clear its value ────────
+  // ── plain text input helpers ────────────────────────────────
   function lockInput(id) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -460,36 +479,31 @@ const Address = (() => {
     el.classList.remove('is-invalid');
   }
 
-  // ── Enable a plain text input ─────────────────────────────
   function unlockInput(id) {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.disabled = false;
+    if (el) el.disabled = false;
   }
 
-  // ── Write to hidden name input ────────────────────────────
+  function lockFreeText(prefix) {
+    ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => lockInput(`${prefix}_${f}`));
+  }
+
+  function unlockFreeText(prefix) {
+    ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => unlockInput(`${prefix}_${f}`));
+  }
+
+  // ── hidden input helpers ────────────────────────────────────
   function setHidden(id, value) {
     const el = document.getElementById(id);
     if (el) el.value = value ?? '';
   }
 
-  // ── Get displayed label from a TomSelect value ────────────
   function getLabel(id, code) {
     if (!code || !ts[id]) return '';
     return ts[id].getItem(code)?.textContent?.trim() || '';
   }
 
-  // ── Lock all fields below barangay for a prefix ───────────
-  function lockFreeTextFields(prefix) {
-    ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => lockInput(`${prefix}_${f}`));
-  }
-
-  // ── Unlock all fields below barangay for a prefix ────────
-  function unlockFreeTextFields(prefix) {
-    ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => unlockInput(`${prefix}_${f}`));
-  }
-
-  // ── Wire one full address block ───────────────────────────
+  // ── wire one address block ──────────────────────────────────
   function wireBlock(prefix) {
     const id = {
       region: `${prefix}_region`,
@@ -498,97 +512,77 @@ const Address = (() => {
       barangay: `${prefix}_barangay`
     };
 
-    // Create TomSelect on each dropdown
     makeTs(id.region);
     makeTs(id.province);
     makeTs(id.city);
     makeTs(id.barangay);
 
-    // Province / City / Barangay start locked
     ts[id.province]?.disable();
     ts[id.city]?.disable();
     ts[id.barangay]?.disable();
+    lockFreeText(prefix);
 
-    // Free-text fields (street → zip) start locked
-    lockFreeTextFields(prefix);
-
-    // ── Load regions on mount ─────────────────────────────
+    // Load regions
     apiFetch(`${BASE}/regions`)
-      .then(regions => {
-        populate(id.region, regions, '— Select Region —');
-
-        // Restore after validation failure
-        const savedCode = document.getElementById(`${prefix}_region_code`)?.value;
-        if (savedCode) {
-          ts[id.region]?.setValue(savedCode, true);
-          setHidden(`${prefix}_region_name`, getLabel(id.region, savedCode));
-          loadProvinces(prefix, id, savedCode);
+      .then(data => {
+        populate(id.region, data, '— Select Region —');
+        const saved = document.getElementById(`${prefix}_region_code`)?.value;
+        if (saved) {
+          ts[id.region]?.setValue(saved, true);
+          setHidden(`${prefix}_region_name`, getLabel(id.region, saved));
+          loadProvinces(prefix, id, saved);
         }
       })
-      .catch(() => showFetchError(id.region));
+      .catch(() => showError(id.region));
 
-    // ── Region selected → load Provinces ─────────────────
-    ts[id.region]?.on('change', regionCode => {
-      // Lock everything below
+    // Region → Province
+    ts[id.region]?.on('change', code => {
       lockSelect(id.province, '— Select Province —');
       lockSelect(id.city, '— Select City / Municipality —');
       lockSelect(id.barangay, '— Select Barangay —');
-      lockFreeTextFields(prefix);
-
-      setHidden(`${prefix}_region_code`, regionCode);
-      setHidden(`${prefix}_region_name`, getLabel(id.region, regionCode));
+      lockFreeText(prefix);
+      setHidden(`${prefix}_region_code`, code);
+      setHidden(`${prefix}_region_name`, getLabel(id.region, code));
       setHidden(`${prefix}_province_code`, '');
       setHidden(`${prefix}_province_name`, '');
       setHidden(`${prefix}_city_code`, '');
       setHidden(`${prefix}_city_name`, '');
       setHidden(`${prefix}_barangay_name`, '');
-
-      if (!regionCode) return;
-      loadProvinces(prefix, id, regionCode);
+      if (code) loadProvinces(prefix, id, code);
     });
 
-    // ── Province selected → load Cities ──────────────────
-    ts[id.province]?.on('change', provinceCode => {
+    // Province → City
+    ts[id.province]?.on('change', code => {
       lockSelect(id.city, '— Select City / Municipality —');
       lockSelect(id.barangay, '— Select Barangay —');
-      lockFreeTextFields(prefix);
-
-      setHidden(`${prefix}_province_code`, provinceCode);
-      setHidden(`${prefix}_province_name`, getLabel(id.province, provinceCode));
+      lockFreeText(prefix);
+      setHidden(`${prefix}_province_code`, code);
+      setHidden(`${prefix}_province_name`, getLabel(id.province, code));
       setHidden(`${prefix}_city_code`, '');
       setHidden(`${prefix}_city_name`, '');
       setHidden(`${prefix}_barangay_name`, '');
-
-      if (!provinceCode) return;
-      loadCities(prefix, id, provinceCode);
+      if (code) loadCities(prefix, id, code);
     });
 
-    // ── City selected → load Barangays ────────────────────
-    ts[id.city]?.on('change', cityCode => {
+    // City → Barangay
+    ts[id.city]?.on('change', code => {
       lockSelect(id.barangay, '— Select Barangay —');
-      lockFreeTextFields(prefix);
-
-      setHidden(`${prefix}_city_code`, cityCode);
-      setHidden(`${prefix}_city_name`, getLabel(id.city, cityCode));
+      lockFreeText(prefix);
+      setHidden(`${prefix}_city_code`, code);
+      setHidden(`${prefix}_city_name`, getLabel(id.city, code));
       setHidden(`${prefix}_barangay_name`, '');
-
-      if (!cityCode) return;
-      loadBarangays(prefix, id, cityCode);
+      if (code) loadBarangays(prefix, id, code);
     });
 
-    // ── Barangay selected → unlock free-text fields ───────
-    ts[id.barangay]?.on('change', barangayCode => {
-      setHidden(`${prefix}_barangay_name`, getLabel(id.barangay, barangayCode));
-
-      if (barangayCode) {
-        unlockFreeTextFields(prefix); // street / subdivision / house / zip now open
-      } else {
-        lockFreeTextFields(prefix);
-      }
+    // Barangay → unlock free text
+    ts[id.barangay]?.on('change', code => {
+      setHidden(`${prefix}_barangay_name`, getLabel(id.barangay, code));
+      if (code) unlockFreeText(prefix);
+      else lockFreeText(prefix);
     });
   }
 
-  // ── Fetch helpers ─────────────────────────────────────────
+  // ── cascade fetch helpers ───────────────────────────────────
   function loadProvinces(prefix, id, regionCode) {
     apiFetch(`${BASE}/regions/${regionCode}/provinces`)
       .then(data => {
@@ -600,7 +594,7 @@ const Address = (() => {
           loadCities(prefix, id, saved);
         }
       })
-      .catch(() => showFetchError(id.province));
+      .catch(() => showError(id.province));
   }
 
   function loadCities(prefix, id, provinceCode) {
@@ -614,7 +608,7 @@ const Address = (() => {
           loadBarangays(prefix, id, saved);
         }
       })
-      .catch(() => showFetchError(id.city));
+      .catch(() => showError(id.city));
   }
 
   function loadBarangays(prefix, id, cityCode) {
@@ -626,48 +620,40 @@ const Address = (() => {
           const match = data.find(b => b.name === savedName);
           if (match) {
             ts[id.barangay]?.setValue(match.code, true);
-            unlockFreeTextFields(prefix); // restore free-text fields on validation recovery
+            unlockFreeText(prefix);
           }
         }
       })
-      .catch(() => showFetchError(id.barangay));
+      .catch(() => showError(id.barangay));
   }
 
-  function showFetchError(selectId) {
-    const wrapper = document.getElementById(selectId)?.closest('.col-md-6, .col-md-4, .col-md-3');
-    if (wrapper && !wrapper.querySelector('.psgc-error')) {
-      wrapper.insertAdjacentHTML(
+  function showError(selectId) {
+    const wrap = document.getElementById(selectId)?.closest('[class*="col-"]');
+    if (wrap && !wrap.querySelector('.psgc-error')) {
+      wrap.insertAdjacentHTML(
         'beforeend',
-        '<small class="text-danger psgc-error">Failed to load. Check your connection.</small>'
+        '<small class="text-danger psgc-error">Failed to load. Check connection.</small>'
       );
     }
   }
 
-  // ── Public: copy permanent → current (checkbox) ───────────
+  // ── public: copy permanent → current ───────────────────────
   function copyPermToCurr() {
-    const levels = ['region', 'province', 'city', 'barangay'];
-
-    levels.forEach(level => {
-      const srcTs = ts[`perm_${level}`];
-      const dstTs = ts[`curr_${level}`];
-      if (!srcTs || !dstTs) return;
-
-      const srcVal = srcTs.getValue();
-
-      // Mirror all options + current value into destination
-      dstTs.clear(true);
-      dstTs.clearOptions();
-      Object.values(srcTs.options || {}).forEach(opt => dstTs.addOption({ value: opt.value, text: opt.text }));
-      dstTs.enable();
-      dstTs.setValue(srcVal, true);
-      dstTs.disable();
-
-      // Mirror hidden code + name inputs
+    ['region', 'province', 'city', 'barangay'].forEach(level => {
+      const src = ts[`perm_${level}`];
+      const dst = ts[`curr_${level}`];
+      if (!src || !dst) return;
+      const val = src.getValue();
+      dst.clear(true);
+      dst.clearOptions();
+      Object.values(src.options || {}).forEach(o => dst.addOption({ value: o.value, text: o.text }));
+      dst.enable();
+      dst.setValue(val, true);
+      dst.disable();
       setHidden(`curr_${level}_code`, document.getElementById(`perm_${level}_code`)?.value);
       setHidden(`curr_${level}_name`, document.getElementById(`perm_${level}_name`)?.value);
     });
 
-    // Copy + lock free-text fields
     ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => {
       const src = document.querySelector(`[name="permanent[${f}]"]`);
       const dst = document.getElementById(`curr_${f}`);
@@ -677,19 +663,17 @@ const Address = (() => {
       dst.readOnly = true;
     });
 
-    // Unlock curr free-text only if barangay was already chosen on permanent side
-    const permBrgy = document.getElementById('perm_barangay_name')?.value;
-    if (!permBrgy) {
-      lockFreeTextFields('curr');
+    if (!document.getElementById('perm_barangay_name')?.value) {
+      lockFreeText('curr');
     }
   }
 
-  // ── Public: fully reset one address block ─────────────────
+  // ── public: reset a block ───────────────────────────────────
   function resetBlock(prefix) {
     lockSelect(`${prefix}_province`, '— Select Province —');
     lockSelect(`${prefix}_city`, '— Select City / Municipality —');
     lockSelect(`${prefix}_barangay`, '— Select Barangay —');
-    lockFreeTextFields(prefix);
+    lockFreeText(prefix);
 
     ['region', 'province', 'city'].forEach(l => {
       setHidden(`${prefix}_${l}_code`, '');
@@ -697,18 +681,15 @@ const Address = (() => {
     });
     setHidden(`${prefix}_barangay_name`, '');
 
-    // Reload regions so the block is still usable after unchecking "same as permanent"
     apiFetch(`${BASE}/regions`)
-      .then(regions => populate(`${prefix}_region`, regions, '— Select Region —'))
+      .then(data => populate(`${prefix}_region`, data, '— Select Region —'))
       .catch(() => {});
 
-    // Unlock the region select itself
     ts[`${prefix}_region`]?.enable();
     ts[`${prefix}_region`]?.setValue('', true);
     setHidden(`${prefix}_region_code`, '');
     setHidden(`${prefix}_region_name`, '');
 
-    // Clear free-text field values
     ['street', 'subdivision', 'house_number', 'zip_code'].forEach(f => {
       const el = document.getElementById(`${prefix}_${f}`);
       if (el) {
@@ -719,7 +700,7 @@ const Address = (() => {
     });
   }
 
-  // ── Public init ───────────────────────────────────────────
+  // ── public init ─────────────────────────────────────────────
   function init() {
     wireBlock('perm');
     wireBlock('curr');

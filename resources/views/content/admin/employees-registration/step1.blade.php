@@ -62,7 +62,7 @@
   <div class="col-md-4">
     <label class="form-label">Place of Birth <span class="text-danger">*</span></label>
     <input type="text" name="place_of_birth" class="form-control @error('place_of_birth') is-invalid @enderror"
-      placeholder="Manila, Philippines" value="{{ old('place_of_birth') }}" required>
+      value="{{ old('place_of_birth') }}" required>
     @error('place_of_birth')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
@@ -84,16 +84,14 @@
     @enderror
   </div>
 
-  {{-- Civil Status --}}
+  {{-- Civil Status — values must match DB enum: single, married, widow --}}
   <div class="col-md-3">
     <label class="form-label">Civil Status <span class="text-danger">*</span></label>
     <select name="civil_status" class="form-select @error('civil_status') is-invalid @enderror" required>
       <option value="">— Select —</option>
-      @foreach (\App\Models\Employee::CIVIL_STATUSES as $cs)
-        <option value="{{ $cs }}" {{ old('civil_status') == $cs ? 'selected' : '' }}>
-          {{ ucfirst($cs) }}
-        </option>
-      @endforeach
+      <option value="single" {{ old('civil_status') == 'single' ? 'selected' : '' }}>Single</option>
+      <option value="married" {{ old('civil_status') == 'married' ? 'selected' : '' }}>Married</option>
+      <option value="widow" {{ old('civil_status') == 'widow' ? 'selected' : '' }}>Widow / Widower</option>
     </select>
     @error('civil_status')
       <div class="invalid-feedback">{{ $message }}</div>
@@ -130,7 +128,7 @@
   <div class="col-md-4">
     <label class="form-label">Mobile Number <span class="text-danger">*</span></label>
     <input type="text" name="mobile_number" class="form-control @error('mobile_number') is-invalid @enderror"
-      placeholder="+63 912 345 6789" value="{{ old('mobile_number') }}" required>
+      placeholder="+63" value="{{ old('mobile_number') }}" required>
     @error('mobile_number')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
