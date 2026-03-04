@@ -9,6 +9,24 @@
 
 @section('content')
 
+  {{-- ═══ DEBUG: show all validation errors visibly ═══ --}}
+  @if ($errors->any())
+    <div class="alert alert-danger mx-4 mt-3">
+      <strong><i class="ri ri-error-warning-line me-1"></i>Validation failed — fix these errors:</strong>
+      <ul class="mb-0 mt-2">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
+
+  @if (session('error'))
+    <div class="alert alert-danger mx-4 mt-3">
+      <i class="ri ri-error-warning-line me-1"></i>{{ session('error') }}
+    </div>
+  @endif
+
   <div class="container-xxl flex-grow-1 container-p-y">
     <div class="card border-0 shadow-sm">
 
@@ -53,22 +71,28 @@
 
         <div class="card-body px-4 py-4">
 
-          <div class="wz-panel" id="panel-1">
-            @include('content.admin.employees-registration.step1')
+          {{-- panels 1-4 live here normally; JS moves them into
+               #reviewScroll when step 5 is entered, then restores them --}}
+          <div id="wizardPanelHost">
+            <div class="wz-panel" id="panel-1">
+              @include('content.admin.employees-registration.step1')
+            </div>
+
+            <div class="wz-panel" id="panel-2">
+              @include('content.admin.employees-registration.step2')
+            </div>
+
+            <div class="wz-panel" id="panel-3">
+              @include('content.admin.employees-registration.step3')
+            </div>
+
+            <div class="wz-panel" id="panel-4">
+              @include('content.admin.employees-registration.step4')
+            </div>
           </div>
 
-          <div class="wz-panel" id="panel-2">
-            @include('content.admin.employees-registration.step2')
-          </div>
-
-          <div class="wz-panel" id="panel-3">
-            @include('content.admin.employees-registration.step3')
-          </div>
-
-          <div class="wz-panel" id="panel-4">
-            @include('content.admin.employees-registration.step4')
-          </div>
-
+          {{-- Review panel stays in card-body; scroll container is empty
+               until JS populates it with the real panels above --}}
           <div class="wz-panel" id="panel-5">
             @include('content.admin.employees-registration.review')
           </div>
@@ -111,5 +135,6 @@
 
   {{-- Main wizard script (includes address PSGC logic) --}}
   <script src="{{ asset('assets/js/registration.js') }}"></script>
+
 
 @endsection
