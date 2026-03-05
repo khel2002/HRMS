@@ -252,22 +252,25 @@ class EmployeesRegistrationController extends Controller
     // ── STEP 3: Try DB insert ─────────────────────────────────────
     try {
       DB::transaction(function () use ($request) {
-        $employee = Employee::create($request->only([
-          'employee_number',
-          'first_name',
-          'middle_name',
-          'last_name',
-          'citizenship',
-          'gender',
-          'date_of_birth',
-          'place_of_birth',
-          'mobile_number',
-          'email',
-          'civil_status',
-          'height_cm',
-          'weight_kg',
-          'blood_type',
-        ]));
+        $employee = Employee::create(array_merge(
+          $request->only([
+            'employee_number',
+            'first_name',
+            'middle_name',
+            'last_name',
+            'citizenship',
+            'gender',
+            'date_of_birth',
+            'place_of_birth',
+            'mobile_number',
+            'email',
+            'civil_status',
+            'height_cm',
+            'weight_kg',
+            'blood_type',
+          ]),
+          ['status' => 'inactive']   // always inactive until face enrollment
+        ));
 
         Log::info('STORE employee created', ['id' => $employee->id]);
 
