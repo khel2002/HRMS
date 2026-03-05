@@ -28,6 +28,7 @@ class Employee extends Model
     'height_cm',
     'weight_kg',
     'blood_type',
+    'status',
   ];
 
   protected $casts = [
@@ -43,6 +44,8 @@ class Employee extends Model
 
   /** employees.civil_status enum — DB: single, married, widow */
   const CIVIL_STATUSES = ['single', 'married', 'widow'];
+
+  const STATUSES = ['active', 'inactive', 'suspended'];
 
   /** employees.blood_type enum */
   const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
