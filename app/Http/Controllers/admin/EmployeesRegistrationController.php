@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -25,16 +26,16 @@ class EmployeesRegistrationController extends Controller
       'first_name'      => ['required', 'string', 'max:100'],
       'middle_name'     => ['nullable', 'string', 'max:100'],
       'last_name'       => ['required', 'string', 'max:100'],
-      'citizenship'     => ['nullable', 'string', 'max:100'],
-      'gender'          => ['nullable', Rule::in(Employee::GENDERS)],
-      'date_of_birth'   => ['nullable', 'date'],
-      'place_of_birth'  => ['nullable', 'string', 'max:150'],
-      'mobile_number'   => ['nullable', 'string', 'max:20'],
-      'landline_number' => ['nullable', 'string', 'max:20'],
-      'civil_status'    => ['nullable', Rule::in(Employee::CIVIL_STATUSES)],
-      'height_cm'       => ['nullable', 'numeric', 'min:0', 'max:300'],
-      'weight_kg'       => ['nullable', 'numeric', 'min:0', 'max:500'],
-      'blood_type'      => ['nullable', Rule::in(Employee::BLOOD_TYPES)],
+      'email'           => ['required', 'string', 'email', 'max:150'],
+      'citizenship'     => ['required', 'string', 'max:100'],
+      'gender'          => ['required', Rule::in(Employee::GENDERS)],
+      'date_of_birth'   => ['required', 'date'],
+      'place_of_birth'  => ['required', 'string', 'max:150'],
+      'mobile_number'   => ['required', 'string', 'max:20'],
+      'civil_status'    => ['required', Rule::in(['single', 'married', 'widow'])],
+      'height_cm'       => ['required', 'numeric', 'min:0', 'max:300'],
+      'weight_kg'       => ['required', 'numeric', 'min:0', 'max:500'],
+      'blood_type'      => ['required', Rule::in(Employee::BLOOD_TYPES)],
     ];
   }
 
@@ -69,15 +70,15 @@ class EmployeesRegistrationController extends Controller
       'current.city_code'        => ['nullable', 'string', 'max:20'],
       'current.barangay'         => ['nullable', 'string', 'max:150'],
 
-      'family.father_name'              => ['nullable', 'string', 'max:150'],
-      'family.mother_name'              => ['nullable', 'string', 'max:150'],
+      'family.father_name'              => ['required', 'string', 'max:150'],
+      'family.mother_name'              => ['required', 'string', 'max:150'],
       'family.spouse_name'              => ['nullable', 'string', 'max:150'],
       'family.spouse_occupation'        => ['nullable', 'string', 'max:100'],
       'family.spouse_employer'          => ['nullable', 'string', 'max:150'],
       'family.spouse_business_address'  => ['nullable', 'string', 'max:255'],
       'family.emergency_contact_name'   => ['required', 'string', 'max:150'],
       'family.emergency_contact_number' => ['required', 'string', 'max:20'],
-      'family.emergency_relationship'   => ['nullable', 'string', 'max:50'],
+      'family.emergency_relationship'   => ['required', 'string', 'max:50'],
 
       'children'                 => ['nullable', 'array'],
       'children.*.child_name'    => ['nullable', 'string', 'max:150'],
@@ -100,19 +101,34 @@ class EmployeesRegistrationController extends Controller
 
   private function saveRelated(Employee $employee, Request $request): void
   {
-    if ($request->filled('permanent')) {
-      $employee->permanentAddress()->updateOrCreate(
-        ['employee_id' => $employee->id],
-        $request->input('permanent')
-      );
-    }
+    // Map PSGC form fields → DB columns (region/codes have no DB column)
+    $permRaw = $request->input('permanent', []);
+    $employee->permanentAddress()->updateOrCreate(
+      ['employee_id' => $employee->id],
+      [
+        'house_number' => $permRaw['house_number'] ?? '',
+        'street'       => $permRaw['street']       ?? '',
+        'subdivision'  => $permRaw['subdivision']  ?? '',
+        'barangay'     => $permRaw['barangay']      ?? '',
+        'city'         => $permRaw['city']          ?? '',
+        'province'     => $permRaw['province']      ?? '',
+        'zip_code'     => $permRaw['zip_code']      ?? '',
+      ]
+    );
 
-    if ($request->filled('current')) {
-      $employee->currentAddress()->updateOrCreate(
-        ['employee_id' => $employee->id],
-        $request->input('current')
-      );
-    }
+    $currRaw = $request->input('current', []);
+    $employee->currentAddress()->updateOrCreate(
+      ['employee_id' => $employee->id],
+      [
+        'house_number' => $currRaw['house_number'] ?? '',
+        'street'       => $currRaw['street']       ?? '',
+        'subdivision'  => $currRaw['subdivision']  ?? '',
+        'barangay'     => $currRaw['barangay']      ?? '',
+        'city'         => $currRaw['city']          ?? '',
+        'province'     => $currRaw['province']      ?? '',
+        'zip_code'     => $currRaw['zip_code']      ?? '',
+      ]
+    );
 
     if ($request->filled('family')) {
       $employee->family()->updateOrCreate(
@@ -188,9 +204,7 @@ class EmployeesRegistrationController extends Controller
 
   public function index()
   {
-    $employees = Employee::orderByDesc('created_at')->paginate(15);
-
-    return view('content.admin.employees-registration.employees-registration', compact('employees'));
+    return view('content.admin.employees-registration.employees-registration');
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -208,11 +222,34 @@ class EmployeesRegistrationController extends Controller
 
   public function store(Request $request): RedirectResponse
   {
-    // Validate before opening a transaction — ValidationException propagates naturally.
-    $validated = $request->validate(
-      array_merge($this->employeeRules(), $this->relatedRules())
-    );
+    // ── STEP 1: Log everything that arrived in the POST ───────────
+    Log::info('STORE called', [
+      'method'       => $request->method(),
+      'all_keys'     => array_keys($request->all()),
+      'employee_num' => $request->input('employee_number'),
+      'civil_status' => $request->input('civil_status'),
+      'gender'       => $request->input('gender'),
+      'email'        => $request->input('email'),
+      'perm_keys'    => array_keys($request->input('permanent', [])),
+      'curr_keys'    => array_keys($request->input('current', [])),
+      'family_keys'  => array_keys($request->input('family', [])),
+    ]);
 
+    // ── STEP 2: Try validation, log any failures ──────────────────
+    $rules = array_merge($this->employeeRules(), $this->relatedRules());
+
+    $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+      Log::warning('STORE validation failed', ['errors' => $validator->errors()->toArray()]);
+      return redirect()
+        ->back()
+        ->withErrors($validator)
+        ->withInput()
+        ->with('validation_failed', true);
+    }
+
+    // ── STEP 3: Try DB insert ─────────────────────────────────────
     try {
       DB::transaction(function () use ($request) {
         $employee = Employee::create($request->only([
@@ -225,26 +262,36 @@ class EmployeesRegistrationController extends Controller
           'date_of_birth',
           'place_of_birth',
           'mobile_number',
-          'landline_number',
+          'email',
           'civil_status',
           'height_cm',
           'weight_kg',
           'blood_type',
         ]));
 
+        Log::info('STORE employee created', ['id' => $employee->id]);
+
         $this->saveRelated($employee, $request);
+
+        Log::info('STORE related saved', ['id' => $employee->id]);
       });
+
+      Log::info('STORE SUCCESS');
 
       return redirect()
         ->route('employees-index')
         ->with('success', 'Employee successfully registered.');
     } catch (Throwable $e) {
-      Log::error('Employee store failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+      Log::error('STORE DB failed', [
+        'error' => $e->getMessage(),
+        'file'  => $e->getFile(),
+        'line'  => $e->getLine(),
+      ]);
 
       return redirect()
         ->back()
         ->withInput()
-        ->with('error', 'Something went wrong while saving the employee. Please try again.');
+        ->with('error', 'DB error: ' . $e->getMessage());
     }
   }
 
@@ -257,7 +304,7 @@ class EmployeesRegistrationController extends Controller
     try {
       $employee = $this->findWithRelations($id);
 
-      return view('content.admin.employees.show', compact('employee'));
+      return view('content.admin.employees-registration.view-employee', compact('employee'));
     } catch (ModelNotFoundException) {
       return redirect()->route('employees-index')->with('error', 'Employee record not found.');
     }
@@ -272,7 +319,7 @@ class EmployeesRegistrationController extends Controller
     try {
       $employee = $this->findWithRelations($id);
 
-      return view('content.admin.employees.edit', compact('employee'));
+      return view('content.admin.employees-registration.edit-employee', compact('employee'));
     } catch (ModelNotFoundException) {
       return redirect()->route('employees-index')->with('error', 'Employee record not found.');
     }
@@ -306,7 +353,7 @@ class EmployeesRegistrationController extends Controller
           'date_of_birth',
           'place_of_birth',
           'mobile_number',
-          'landline_number',
+          'email',
           'civil_status',
           'height_cm',
           'weight_kg',
