@@ -1,62 +1,61 @@
+{{-- content/admin/employees-registration/review.blade.php
+     Step 5 — Review panel.
+     The actual panels 1-4 (with their filled values) are physically
+     moved INTO #reviewScroll by JS when this step is entered, then
+     moved back when navigating away. No duplicate DOM — no empty fields.
+--}}
+
 <div class="wz-panel-head">
   <i class="ri ri-file-check-line"></i>
   <div>
-    <h6 class="wz-panel-title">Review & Confirm</h6>
-    <p class="wz-panel-sub">Please review all information carefully before submitting.</p>
+    <h6 class="wz-panel-title">Review &amp; Confirm</h6>
+    <p class="wz-panel-sub">Review and edit everything below before saving.</p>
   </div>
 </div>
 
-<div class="row g-3 mt-2">
-
-  {{-- Personal --}}
-  <div class="col-md-6">
-    <div class="review-block">
-      <div class="review-block-title">
-        <span><i class="ri ri-user-3-line me-1"></i>Personal Info</span>
-        <a href="javascript:void(0);" class="review-edit" onclick="goStep(1)">Edit</a>
-      </div>
-      <div class="review-block-body" id="rv-personal">—</div>
-    </div>
-  </div>
-
-  {{-- Address --}}
-  <div class="col-md-6">
-    <div class="review-block">
-      <div class="review-block-title">
-        <span><i class="ri ri-map-pin-line me-1"></i>Address</span>
-        <a href="javascript:void(0);" class="review-edit" onclick="goStep(2)">Edit</a>
-      </div>
-      <div class="review-block-body" id="rv-address">—</div>
-    </div>
-  </div>
-
-  {{-- Family --}}
-  <div class="col-md-6">
-    <div class="review-block">
-      <div class="review-block-title">
-        <span><i class="ri ri-team-line me-1"></i>Family</span>
-        <a href="javascript:void(0);" class="review-edit" onclick="goStep(3)">Edit</a>
-      </div>
-      <div class="review-block-body" id="rv-family">—</div>
-    </div>
-  </div>
-
-  {{-- Education & IDs --}}
-  <div class="col-md-6">
-    <div class="review-block">
-      <div class="review-block-title">
-        <span><i class="ri ri-book-open-line me-1"></i>Education & IDs</span>
-        <a href="javascript:void(0);" class="review-edit" onclick="goStep(4)">Edit</a>
-      </div>
-      <div class="review-block-body" id="rv-education">—</div>
-    </div>
-  </div>
-
+<div class="alert alert-info d-flex align-items-center gap-2 mt-2 py-2 px-3" style="font-size:.82rem;">
+  <i class="ri ri-edit-line flex-shrink-0"></i>
+  <span>You can still edit any field here. Scroll through all sections before clicking <strong>Save
+      Employee</strong>.</span>
 </div>
 
-<div class="alert alert-warning d-flex align-items-start gap-2 mt-4" style="font-size:.875rem;">
-  <i class="ri ri-information-line mt-1 flex-shrink-0"></i>
-  <span>
-    Double-check all entries above. Clicking <strong>Save Employee</strong> will save the employee record.
-  </span>
+{{-- Panels 1-4 will be moved here by JS --}}
+<div id="reviewScroll"
+  style="height:60vh; overflow-y:auto; border:1px solid #e0e0e0; border-radius:.5rem; padding:1.5rem 1.75rem; margin-top:1rem;">
 </div>
+
+<style>
+  /* Sticky section label that floats as you scroll */
+  .review-section-header {
+    position: sticky;
+    top: -1.5rem;
+    z-index: 10;
+    background: #f0f0ff;
+    color: #696cff;
+    font-weight: 700;
+    font-size: .8rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .45rem .75rem;
+    border-radius: .35rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .review-divider {
+    border-color: #e0e0e0;
+    margin: 2rem 0;
+  }
+
+  /* While inside the review scroll, hide the per-step panel headers
+     (the sticky section headers above replace them) */
+  #reviewScroll .wz-panel-head {
+    display: none !important;
+  }
+
+  /* Hide table/db code badges inside review */
+  #reviewScroll .wz-section-label code {
+    display: none;
+  }
+</style>
