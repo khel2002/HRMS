@@ -1,15 +1,15 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-// admins
 use App\Http\Controllers\admin\AdminEmployeesController;
 use App\Http\Controllers\admin\EmployeesRegistrationController;
 use App\Http\Controllers\admin\PsgcController;
+use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\LeaveApplicationController;
+use Illuminate\Support\Facades\Route;
 
 // Main Page Route
 
-
+Route::get('/', [LoginBasic::class, 'index'])->name('home');
 //employee management
 
 Route::prefix('admin')->group(function () {
