@@ -18,6 +18,7 @@ Route::prefix('admin')->group(function () {
 
   // ── Specific employee routes ───────────────────────────────
   Route::get('/employees/{id}/edit',        [EmployeesRegistrationController::class, 'edit'])->name('employee-edit');
+  Route::put('/employees/{id}',          [EmployeesRegistrationController::class, 'update'])->name('employee-update');
   Route::get('/employees/{id}',             [EmployeesRegistrationController::class, 'show'])->name('employee-show');
   Route::delete('/employees/{id}',          [EmployeesRegistrationController::class, 'destroy'])->name('employee-destroy');
 

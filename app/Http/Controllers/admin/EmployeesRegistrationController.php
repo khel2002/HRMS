@@ -70,15 +70,15 @@ class EmployeesRegistrationController extends Controller
       'current.city_code'        => ['nullable', 'string', 'max:20'],
       'current.barangay'         => ['nullable', 'string', 'max:150'],
 
-      'family.father_name'              => ['nullable', 'string', 'max:150'],
-      'family.mother_name'              => ['nullable', 'string', 'max:150'],
+      'family.father_name'              => ['required', 'string', 'max:150'],
+      'family.mother_name'              => ['required', 'string', 'max:150'],
       'family.spouse_name'              => ['nullable', 'string', 'max:150'],
       'family.spouse_occupation'        => ['nullable', 'string', 'max:100'],
       'family.spouse_employer'          => ['nullable', 'string', 'max:150'],
       'family.spouse_business_address'  => ['nullable', 'string', 'max:255'],
       'family.emergency_contact_name'   => ['required', 'string', 'max:150'],
       'family.emergency_contact_number' => ['required', 'string', 'max:20'],
-      'family.emergency_relationship'   => ['nullable', 'string', 'max:50'],
+      'family.emergency_relationship'   => ['required', 'string', 'max:50'],
 
       'children'                 => ['nullable', 'array'],
       'children.*.child_name'    => ['nullable', 'string', 'max:150'],
@@ -304,7 +304,7 @@ class EmployeesRegistrationController extends Controller
     try {
       $employee = $this->findWithRelations($id);
 
-      return view('content.admin.employees.show', compact('employee'));
+      return view('content.admin.employees-registration.view-employee', compact('employee'));
     } catch (ModelNotFoundException) {
       return redirect()->route('employees-index')->with('error', 'Employee record not found.');
     }
@@ -319,7 +319,7 @@ class EmployeesRegistrationController extends Controller
     try {
       $employee = $this->findWithRelations($id);
 
-      return view('content.admin.employees.edit', compact('employee'));
+      return view('content.admin.employees-registration.edit-employee', compact('employee'));
     } catch (ModelNotFoundException) {
       return redirect()->route('employees-index')->with('error', 'Employee record not found.');
     }
