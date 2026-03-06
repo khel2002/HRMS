@@ -2,14 +2,12 @@
 @section('title', 'Add Employee')
 
 @section('vendor-style')
-  {{-- TomSelect: searchable dropdowns for PSGC address hierarchy --}}
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
   <link rel="stylesheet" href="{{ asset('assets/css/registration.css') }}">
 @endsection
 
 @section('content')
 
-  {{-- ═══ DEBUG: show all validation errors visibly ═══ --}}
   @if ($errors->any())
     <div class="alert alert-danger mx-4 mt-3">
       <strong><i class="ri ri-error-warning-line me-1"></i>Validation failed — fix these errors:</strong>
@@ -130,7 +128,6 @@
     data-govid-idx="{{ count(old('gov_ids', [])) }}" style="display:none;">
   </div>
 
-  {{-- TomSelect JS (must load before registration.js) --}}
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
   {{-- Main wizard script (includes address PSGC logic) --}}

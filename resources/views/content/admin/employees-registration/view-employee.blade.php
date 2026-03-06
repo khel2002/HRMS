@@ -26,11 +26,6 @@
       <a href="{{ route('employees-index') }}" class="btn btn-sm btn-outline-light">
         <i class="ri ri-arrow-left-line me-1"></i> Back to List
       </a>
-      <div class="d-flex gap-2">
-        <a href="{{ route('employee-edit', $employee->id) }}" class="btn btn-sm btn-light fw-semibold">
-          <i class="ri ri-edit-line me-1"></i> Edit
-        </a>
-      </div>
     </div>
 
     <div class="d-flex align-items-center gap-4 flex-wrap">
