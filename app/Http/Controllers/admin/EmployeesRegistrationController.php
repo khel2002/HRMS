@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeChild;
 use App\Models\EmployeeEducation;
+use App\Models\EmployeeFaceInfo;
 use App\Models\EmployeeGovernmentId;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -412,5 +413,53 @@ class EmployeesRegistrationController extends Controller
       'education.level',
       'governmentIds',
     ])->findOrFail($id);
+  }
+
+
+  public function facialRecognitionRegistration()
+  {
+
+   $employeesWithoutFace = Employee::where('status', 'inactive')
+      ->get();
+
+    return view('content.admin.employees-registration.facial-recognitation', compact('employeesWithoutFace'));
+  }
+
+  public function facialRecognitionSave(Request $request)
+  {
+
+    try {
+     
+        $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'descriptor'  => 'required|array|min:128' 
+        ]);
+
+
+        // return response()->json([
+        //     'status' => 'success',
+        //     'message' => $request->all()
+        // ]);
+
+        
+        EmployeeFaceInfo::updateOrCreate(
+            ['employee_id' => $request->employee_id],
+            [
+                'descriptor' => json_encode($request->descriptor),
+            ]
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Facial data enrolled successfully!'
+        ]);
+
+    } catch (\Exception $e) {
+        // Log::error("Face Enrollment Error: " . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
   }
 }
