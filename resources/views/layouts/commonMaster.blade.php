@@ -24,7 +24,15 @@
     <link rel="canonical" href="{{ config('variables.productPage') ? config('variables.productPage') : '' }}" />
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
+
+
+
+    {{-- Face API --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     
+
+    {{-- jQuery --}}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Include Styles -->
     @include('layouts/sections/styles')

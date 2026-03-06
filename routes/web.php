@@ -21,6 +21,8 @@ Route::prefix('admin')->group(function () {
 
   // ── Registration (MUST come before /{id} wildcard routes) ─
   Route::get('/employees/registration',     [EmployeesRegistrationController::class, 'index'])->name('employee-registration');
+  Route::get('/employees/facial-recognition/registration', [EmployeesRegistrationController::class, 'facialRecognitionRegistration'])->name('employee-facial-registration');
+  Route::post('/employees/facial-recognition/save', [EmployeesRegistrationController::class, 'facialRecognitionSave'])->name('employee-facial-registration-save');
   Route::post('/employees',                 [EmployeesRegistrationController::class, 'store'])->name('employee-store');
 
   // ── Specific employee routes ───────────────────────────────
