@@ -19,7 +19,7 @@ Route::prefix('admin')->group(function () {
 
   // ── Employees list + status update ────────────────────────
   Route::get('/employees',                  [AdminEmployeesController::class, 'index'])->name('employees-index');
-  Route::patch('/employees/{id}/status',    [AdminEmployeesController::class, 'updateStatus'])->name('employee-status');
+  Route::patch('/employees/{id}/stat',    [AdminEmployeesController::class, 'updateStatus'])->name('employee-status');
 
   // ── Registration (MUST come before /{id} wildcard routes) ─
   Route::get('/employees/registration',     [EmployeesRegistrationController::class, 'index'])->name('employee-registration');
