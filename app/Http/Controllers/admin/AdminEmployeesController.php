@@ -55,4 +55,6 @@ class AdminEmployeesController extends Controller
       return redirect()->back()->with('error', 'Failed to update employee status.');
     }
   }
+
+  
 }

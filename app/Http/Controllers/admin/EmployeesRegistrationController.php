@@ -436,10 +436,6 @@ class EmployeesRegistrationController extends Controller
         ]);
 
 
-        // return response()->json([
-        //     'status' => 'success',
-        //     'message' => $request->all()
-        // ]);
 
         
         EmployeeFaceInfo::updateOrCreate(
