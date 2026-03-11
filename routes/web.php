@@ -9,7 +9,9 @@ use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\LeaveApplicationController;
 
 // Main Page Route
-
+Route::get('/', [LoginBasic::class, 'index'])->name('home');
+Route::get('/face-recognition-login', [LoginBasic::class, 'faceRecognitionLogin'])->name('face-recognition-login');
+Route::get('/employees/get-enrolled-descriptors', [LoginBasic::class, 'getEnrolledDescriptors'])->name('employees.enrolled.descriptors');
 
 //employee management
 

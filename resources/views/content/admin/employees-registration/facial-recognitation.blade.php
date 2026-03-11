@@ -24,7 +24,7 @@
 
                 <div class="video-container" style="position: relative; display: inline-block;">
                     <video id="video" width="480" height="360" autoplay muted style="border-radius: 8px; background: #222; transform: scaleX(-1);"></video>
-                    <canvas id="overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></canvas>
+                    <canvas id="overlay" style="position: absolute; top: 0; left: 0; pointer-events: none; filter:blur(100px);"></canvas>
                     
                     <div id="scanGuide" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 2px dashed rgba(255,255,255,0.5); width: 200px; height: 250px; border-radius: 50%; pointer-events: none;"></div>
                 </div>
