@@ -14,31 +14,164 @@
     if (hidden) hidden.value = now.toISOString().split('T')[0];
   })();
 
-  // ── Leave card single-selection ───────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  //  EMPLOYEE SEARCH
+  // ════════════════════════════════════════════════════════════════
+  const searchInput = document.getElementById('employeeSearchInput');
+  const dropdown = document.getElementById('employeeDropdown');
+  const clearBtn = document.getElementById('clearEmployeeBtn');
+
+  let searchTimer = null;
+
+  function populateEmployee(emp) {
+    // Hidden fields
+    document.getElementById('selectedEmployeeId').value = emp.id ?? '';
+    document.getElementById('hiddenLastName').value = emp.last_name ?? '';
+    document.getElementById('hiddenFirstName').value = emp.first_name ?? '';
+    document.getElementById('hiddenMiddleName').value = emp.middle_name ?? '';
+    document.getElementById('hiddenPositionId').value = emp.position_id ?? '';
+
+    // Display fields
+    document.getElementById('displayLastName').textContent = emp.last_name || '—';
+    document.getElementById('displayFirstName').textContent = emp.first_name || '—';
+    document.getElementById('displayMiddleName').textContent = emp.middle_name || '—';
+    document.getElementById('displayPosition').textContent = emp.position_name || '—';
+
+    // Search input shows the selected employee
+    if (searchInput) {
+      searchInput.value = emp.employee_number + ' — ' + emp.first_name + ' ' + emp.last_name;
+    }
+
+    closeDropdown();
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  }
+
+  function clearEmployee() {
+    ['selectedEmployeeId', 'hiddenLastName', 'hiddenFirstName', 'hiddenMiddleName', 'hiddenPositionId'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    ['displayLastName', 'displayFirstName', 'displayMiddleName'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+
+    const pos = document.getElementById('displayPosition');
+    if (pos) pos.textContent = '—';
+
+    if (searchInput) searchInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+
+  function closeDropdown() {
+    if (dropdown) dropdown.style.display = 'none';
+    if (dropdown) dropdown.innerHTML = '';
+  }
+
+  function renderDropdown(results) {
+    if (!dropdown) return;
+    if (!results.length) {
+      dropdown.innerHTML =
+        '<li class="emp-dd-empty"><i class="ri ri-user-unfollow-line me-2"></i>No employees found.</li>';
+      dropdown.style.display = 'block';
+      return;
+    }
+    dropdown.innerHTML = results
+      .map(
+        emp =>
+          '<li class="emp-dd-item" data-id="' +
+          emp.id +
+          '">' +
+          '<span class="emp-dd-num">' +
+          escHtml(emp.employee_number) +
+          '</span>' +
+          '<span class="emp-dd-name">' +
+          escHtml(emp.first_name + ' ' + (emp.middle_name ? emp.middle_name + ' ' : '') + emp.last_name) +
+          '</span>' +
+          '<span class="emp-dd-pos">' +
+          escHtml(emp.position_name ?? '') +
+          '</span>' +
+          '</li>'
+      )
+      .join('');
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.emp-dd-item').forEach(function (li) {
+      li.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // prevent blur before click
+        const id = li.dataset.id;
+        const emp = results.find(r => String(r.id) === String(id));
+        if (emp) populateEmployee(emp);
+      });
+    });
+  }
+
+  function doSearch(q) {
+    if (q.length < 2) {
+      closeDropdown();
+      return;
+    }
+    fetch('/admin/api/employees/search?q=' + encodeURIComponent(q), {
+      headers: { Accept: 'application/json', 'X-CSRF-TOKEN': CSRF }
+    })
+      .then(res => res.json())
+      .then(data => renderDropdown(Array.isArray(data) ? data : (data.data ?? [])))
+      .catch(() => closeDropdown());
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => doSearch(searchInput.value.trim()), 280);
+    });
+    searchInput.addEventListener('blur', function () {
+      // small delay so mousedown on dropdown fires first
+      setTimeout(closeDropdown, 180);
+    });
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeDropdown();
+        searchInput.blur();
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearEmployee);
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.employee-search-wrap')) closeDropdown();
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  //  LEAVE CARD — MULTI-SELECT (checkboxes) + COMMUTATION (radio)
   //
-  //  Two independent radio groups on this page:
-  //    name="leave_type"  — the 6 leave type cards (col-lg-8)
-  //    name="commutation" — the 2 commutation cards (col-lg-4)
-  //
-  //  Both share .leave-card / .leave-input markup.
-  //  Clicking a card checks its radio and syncs lc-selected
-  //  only within that same name group so the two sides never
-  //  interfere with each other.
-  // ─────────────────────────────────────────────────────────────
+  //  .leave-input[type="checkbox"]  → leave type cards  (multi)
+  //  .leave-input[type="radio"]     → commutation cards (single)
+  // ════════════════════════════════════════════════════════════════
   document.querySelectorAll('.leave-card').forEach(function (card) {
     card.addEventListener('click', function () {
       const input = card.querySelector('.leave-input');
       if (!input) return;
 
-      input.checked = true;
-
-      const groupName = input.name;
-      document.querySelectorAll('.leave-card').forEach(function (c) {
-        const inp = c.querySelector('.leave-input');
-        if (inp && inp.name === groupName) {
-          c.classList.toggle('lc-selected', inp.checked);
-        }
-      });
+      if (input.type === 'checkbox') {
+        // Toggle this card
+        input.checked = !input.checked;
+        card.classList.toggle('lc-selected', input.checked);
+      } else {
+        // Radio — single select within same name group
+        input.checked = true;
+        const groupName = input.name;
+        document.querySelectorAll('.leave-card').forEach(function (c) {
+          const inp = c.querySelector('.leave-input');
+          if (inp && inp.name === groupName) {
+            c.classList.toggle('lc-selected', inp.checked);
+          }
+        });
+      }
     });
   });
 
@@ -48,7 +181,7 @@
     const cur = new Date(from + 'T00:00:00');
     const end = new Date(to + 'T00:00:00');
     while (cur <= end) {
-      if (cur.getDay() !== 0) count++; // exclude Sundays
+      if (cur.getDay() !== 0) count++;
       cur.setDate(cur.getDate() + 1);
     }
     return count;
@@ -61,6 +194,9 @@
     const total = wholeDays + halfDayDays;
     const el = document.getElementById('totalDaysDisplay');
     if (el) el.textContent = total % 1 === 0 ? String(total) : total.toFixed(1);
+    // Keep the hidden field in sync so the server always receives the correct value
+    const hidden = document.getElementById('hiddenTotalDays');
+    if (hidden) hidden.value = total;
   }
 
   window.computeWholeDays = function () {
@@ -203,8 +339,24 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
 
-      if (!document.querySelector('input[name="leave_type"]:checked')) {
-        showToast('Please select a leave type before submitting.', 'danger');
+      // Validate employee selected
+      if (!document.getElementById('selectedEmployeeId')?.value) {
+        showToast('Please search and select an employee before submitting.', 'danger');
+        document.getElementById('employeeSearchInput')?.focus();
+        return;
+      }
+
+      // Validate at least one leave type checked
+      if (!document.querySelector('input[name="leave_type[]"]:checked')) {
+        showToast('Please select at least one leave type before submitting.', 'danger');
+        return;
+      }
+
+      // Validate leave duration is set
+      const totalDays = parseFloat(document.getElementById('hiddenTotalDays')?.value ?? '0');
+      if (!totalDays || totalDays <= 0) {
+        showToast('Please enter leave dates before submitting.', 'danger');
+        document.getElementById('wholeDayFrom')?.focus();
         return;
       }
 
@@ -218,7 +370,6 @@
         .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
         .then(function ({ ok, status, data }) {
           setSubmitting(submitBtn, false);
-
           if (ok) {
             showToast(data.message ?? 'Leave application submitted successfully.', 'success');
             resetLeaveForm();
@@ -242,9 +393,7 @@
   function highlightErrors(errors) {
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
-
     Object.entries(errors).forEach(function ([field, messages]) {
-      // Convert dot-notation "half_day.0.date" → "half_day[0][date]"
       const name = field
         .replace(/\.(\d+)\./g, '[$1][')
         .replace(/\.(\d+)$/, '[$1]')
@@ -262,20 +411,23 @@
   // ── Form reset ────────────────────────────────────────────────
   window.resetLeaveForm = function () {
     form.reset();
+    clearEmployee();
 
-    // Clear all card highlights
-    document.querySelectorAll('.leave-card').forEach(c => c.classList.remove('lc-selected'));
+    // Clear all leave type card highlights (checkboxes)
+    document.querySelectorAll('.leave-card').forEach(c => {
+      c.classList.remove('lc-selected');
+      const inp = c.querySelector('.leave-input');
+      if (inp) inp.checked = false;
+    });
 
     // Re-apply commutation default (Not Requested is pre-checked in HTML)
     document.querySelectorAll('.commut-card').forEach(function (c) {
       c.classList.toggle('lc-selected', c.querySelector('.leave-input')?.checked ?? false);
     });
 
-    // Clear validation states
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
 
-    // Reset half-day rows
     const container = document.getElementById('halfDayContainer');
     if (container) {
       container.innerHTML =
@@ -287,7 +439,6 @@
     }
 
     wholeDays = halfDayDays = hdIdx = 0;
-
     const td = document.getElementById('totalDaysDisplay');
     const wr = document.getElementById('wholeDayResult');
     const we = document.getElementById('wholeDayError');
@@ -295,4 +446,13 @@
     if (wr) wr.textContent = '—';
     if (we) we.style.display = 'none';
   };
+
+  // ── HTML escape helper ────────────────────────────────────────
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 })();
