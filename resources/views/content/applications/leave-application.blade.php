@@ -7,24 +7,29 @@
 
 @section('content')
 
+  {{-- Toast container (outside form, fixed position) --}}
+  <div id="toastContainer"></div>
+
   <div class="container-xxl flex-grow-1 container-p-y">
 
-    {{-- Page title --}}
-    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    {{-- ── Page title ─────────────────────────────── --}}
+    <div class="page-title d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h4 class="fw-bold mb-0" style="color:#696cff;">Application for Leave</h4>
         <small class="text-muted">RBH Form No. 1 — Fill out all required fields completely.</small>
       </div>
     </div>
 
-    <form action="" method="POST" id="leaveAppForm">
+    <form action="{{ route('leave-application-store') }}" method="POST" id="leaveAppForm">
       @csrf
+      {{-- Synced by JS (refreshTotal) before every submit --}}
+      <input type="hidden" name="total_days" id="hiddenTotalDays" value="0">
 
-      {{-- ══════════════════════════════════════════
+      {{-- ════════════════════════════════════════════
            SECTION 1 — EMPLOYEE INFORMATION
-      ══════════════════════════════════════════ --}}
+      ════════════════════════════════════════════ --}}
       <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom px-4 py-3">
+        <div class="card-header bg-white border-bottom">
           <div class="d-flex align-items-center gap-2">
             <i class="ri ri-user-3-line text-primary fs-5"></i>
             <div>
@@ -33,48 +38,69 @@
             </div>
           </div>
         </div>
-        <div class="card-body px-4 py-4">
+        <div class="card-body">
           <div class="row g-3">
 
-            <div class="col-md-4">
-              <label class="form-label">Office / Department</label>
-              <select name="department" class="form-select">
-                <option value="">— Select Department —</option>
-                <option>Admin</option>
-              </select>
+            {{-- ── Employee Search ── --}}
+            <div class="col-12">
+              <label class="form-label fw-semibold">
+                Search Employee
+                <span class="text-danger">*</span>
+              </label>
+              <div class="employee-search-wrap position-relative">
+                <div class="input-group">
+                  <span class="input-group-text bg-white">
+                    <i class="ri ri-search-line text-muted"></i>
+                  </span>
+                  <input type="text" id="employeeSearchInput" class="form-control"
+                    placeholder="Type employee number or name…" autocomplete="off">
+                  <button type="button" class="btn btn-outline-secondary" id="clearEmployeeBtn" style="display:none;"
+                    title="Clear employee">
+                    <i class="ri ri-close-line"></i>
+                  </button>
+                </div>
+                {{-- Dropdown results --}}
+                <ul class="employee-search-dropdown list-unstyled mb-0" id="employeeDropdown" style="display:none;"></ul>
+              </div>
+              {{-- Hidden employee_id posted with the form --}}
+              <input type="hidden" name="employee_id" id="selectedEmployeeId">
             </div>
 
-            <div class="col-md-8">
+            {{-- ── Auto-populated name fields ── --}}
+            <div class="col-12 col-sm-6 col-md-8">
               <label class="form-label">Employee Name</label>
               <div class="row g-2">
-                <div class="col-md-4">
-                  <input type="hidden" name="last_name" value="Roa">
-                  <div class="form-control bg-light d-flex flex-column"
+                <div class="col-4">
+                  <input type="hidden" name="last_name" id="hiddenLastName">
+                  <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
-                    <span class="fw-semibold text-body" style="font-size:.875rem;">Roa</span>
+                    <span class="fw-semibold text-body emp-field-value" id="displayLastName"
+                      style="font-size:.875rem;">—</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">Last Name</small>
                   </div>
                 </div>
-                <div class="col-md-4">
-                  <input type="hidden" name="first_name" value="Jun Michael">
-                  <div class="form-control bg-light d-flex flex-column"
+                <div class="col-4">
+                  <input type="hidden" name="first_name" id="hiddenFirstName">
+                  <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
-                    <span class="fw-semibold text-body" style="font-size:.875rem;">Jun Michael</span>
+                    <span class="fw-semibold text-body emp-field-value" id="displayFirstName"
+                      style="font-size:.875rem;">—</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">First Name</small>
                   </div>
                 </div>
-                <div class="col-md-4">
-                  <input type="hidden" name="middle_name" value="Melendres">
-                  <div class="form-control bg-light d-flex flex-column"
+                <div class="col-4">
+                  <input type="hidden" name="middle_name" id="hiddenMiddleName">
+                  <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
-                    <span class="fw-semibold text-body" style="font-size:.875rem;">Melendres</span>
+                    <span class="fw-semibold text-body emp-field-value" id="displayMiddleName"
+                      style="font-size:.875rem;">—</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">Middle Name</small>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-md-4">
               <label class="form-label">Date of Filing</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="ri ri-calendar-line"></i></span>
@@ -84,16 +110,28 @@
               </div>
             </div>
 
-            <div class="col-md-5">
+            {{-- Position — auto-filled from employee record --}}
+            <div class="col-12 col-sm-6 col-md-5">
               <label class="form-label">Position / Designation</label>
-              <input type="text" name="position" class="form-control" placeholder="e.g. Administrative Officer II">
+              <input type="hidden" name="position_id" id="hiddenPositionId">
+              <div class="input-group">
+                <span class="input-group-text bg-light">
+                  <i class="ri ri-briefcase-line text-muted"></i>
+                </span>
+                <div class="form-control bg-light d-flex align-items-center" id="displayPosition"
+                  style="color:#555;font-size:.875rem;">—</div>
+              </div>
+              <small class="text-muted" style="font-size:.75rem;">
+                Auto-filled from the selected employee record.
+              </small>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-12 col-sm-6 col-md-4">
               <label class="form-label">Monthly Salary</label>
               <div class="input-group">
                 <span class="input-group-text">₱</span>
-                <input type="text" name="salary" class="form-control" placeholder="0.00" oninput="formatSalary(this)">
+                <input type="text" name="salary" class="form-control" placeholder="0.00"
+                  oninput="formatSalary(this)">
               </div>
             </div>
 
@@ -101,124 +139,125 @@
         </div>
       </div>
 
-      {{-- ══════════════════════════════════════════
+      {{-- ════════════════════════════════════════════
            SECTION 2 — LEAVE TYPE  |  COMMUTATION
-      ══════════════════════════════════════════ --}}
+      ════════════════════════════════════════════ --}}
       <div class="row g-4 mb-4">
 
-        {{-- ── LEFT: Type of Leave (col-lg-8) ── --}}
-        <div class="col-lg-8">
+        {{-- ── Type of Leave (col-lg-8) ── --}}
+        <div class="col-12 col-lg-8">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white border-bottom px-4 py-3">
+            <div class="card-header bg-white border-bottom">
               <div class="d-flex align-items-center gap-2">
                 <i class="ri ri-file-list-3-line text-primary fs-5"></i>
                 <div>
                   <h6 class="mb-0 fw-bold">Type of Leave Applied For</h6>
-                  <small class="text-muted">Select one leave type — hover a card to see requirements</small>
+                  <small class="text-muted">Select one or more leave types — tap a card to see requirements</small>
                 </div>
               </div>
             </div>
-            <div class="card-body px-4 py-4">
+            <div class="card-body">
 
+              {{-- 3-column leave card grid --}}
               <div class="row g-3">
 
-                {{-- ── Column A: Vacation / Sick ── --}}
-                <div class="col-sm-6 col-xl-4">
+                {{-- Column A --}}
+                <div class="col-12 col-sm-6 col-xl-4">
                   <p class="leave-group-label">Vacation / Sick</p>
                   <div class="d-flex flex-column gap-2">
 
                     <label class="leave-card" id="lc-vacation" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="right" data-bs-html="true" data-bs-title="Vacation Leave"
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Vacation Leave"
                       data-bs-content="✔ For personal vacation, rest, or recreation.<br><strong>Requirements:</strong><br>• Leave application form<br>• Supervisor approval at least <strong>3 days</strong> in advance<br>• Must have sufficient leave balance">
-                      <input type="radio" name="leave_type" value="vacation" class="leave-input">
+                      <input type="checkbox" name="leave_type[]" value="vacation" class="leave-input">
                       <div class="leave-card-icon" style="background:#e7edff;color:#696cff;">
                         <i class="ri ri-sun-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Vacation Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                     <label class="leave-card" id="lc-sick" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="right" data-bs-html="true" data-bs-title="Sick Leave"
-                      data-bs-content="✔ For illness, injury, or medical/dental appointments.<br><strong>Requirements:</strong><br>• Medical certificate from a licensed physician<br>&nbsp;&nbsp;(required if absence exceeds <strong>5 consecutive days</strong>)<br>• For hospitalization: hospital discharge summary<br>• Notify supervisor as soon as possible">
-                      <input type="radio" name="leave_type" value="sick" class="leave-input">
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Sick Leave"
+                      data-bs-content="✔ For illness, injury, or medical/dental appointments.<br><strong>Requirements:</strong><br>• Medical certificate (required if &gt;5 consecutive days)<br>• For hospitalization: discharge summary<br>• Notify supervisor as soon as possible">
+                      <input type="checkbox" name="leave_type[]" value="sick" class="leave-input">
                       <div class="leave-card-icon" style="background:#e8f5e9;color:#28a745;">
                         <i class="ri ri-heart-pulse-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Sick Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                   </div>
                 </div>
 
-                {{-- ── Column B: Special Privilege Leave ── --}}
-                <div class="col-sm-6 col-xl-4">
+                {{-- Column B --}}
+                <div class="col-12 col-sm-6 col-xl-4">
                   <p class="leave-group-label">Special Privilege Leave</p>
                   <div class="d-flex flex-column gap-2">
 
                     <label class="leave-card" id="lc-maternity" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="right" data-bs-html="true" data-bs-title="Maternity Leave"
-                      data-bs-content="✔ For female employees who are pregnant.<br><strong>Requirements:</strong><br>• Medical certificate indicating expected date of delivery<br>• Notify agency at least <strong>30 days</strong> before<br>• Entitlement: <strong>105 days</strong> (normal); <strong>60 days</strong> (miscarriage)<br>• Additional 30 days without pay upon request">
-                      <input type="radio" name="leave_type" value="maternity" class="leave-input">
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Maternity Leave"
+                      data-bs-content="✔ For female employees who are pregnant.<br><strong>Requirements:</strong><br>• Medical certificate with expected delivery date<br>• Notify agency at least <strong>30 days</strong> before<br>• Entitlement: <strong>105 days</strong> normal / <strong>60 days</strong> miscarriage">
+                      <input type="checkbox" name="leave_type[]" value="maternity" class="leave-input">
                       <div class="leave-card-icon" style="background:#fce4ec;color:#e91e63;">
                         <i class="ri ri-heart-2-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Maternity Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                     <label class="leave-card" id="lc-paternity" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="right" data-bs-html="true" data-bs-title="Paternity Leave"
-                      data-bs-content="✔ For married male employees upon delivery or miscarriage of their legitimate spouse.<br><strong>Requirements:</strong><br>• Marriage certificate (photocopy)<br>• Birth certificate or hospital record of delivery<br>• Must be filed within <strong>60 days</strong> of delivery<br>• Maximum of <strong>7 working days</strong> per delivery (up to 4 deliveries)">
-                      <input type="radio" name="leave_type" value="paternity" class="leave-input">
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Paternity Leave"
+                      data-bs-content="✔ For married male employees upon delivery or miscarriage of their spouse.<br><strong>Requirements:</strong><br>• Marriage certificate (photocopy)<br>• Birth certificate or hospital record<br>• Must be filed within <strong>60 days</strong> of delivery<br>• Max <strong>7 working days</strong> per delivery (up to 4 deliveries)">
+                      <input type="checkbox" name="leave_type[]" value="paternity" class="leave-input">
                       <div class="leave-card-icon" style="background:#f3e8ff;color:#9155fd;">
                         <i class="ri ri-parent-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Paternity Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                   </div>
                 </div>
 
-                {{-- ── Column C: Other Leave Types ── --}}
-                <div class="col-sm-6 col-xl-4">
+                {{-- Column C --}}
+                <div class="col-12 col-sm-6 col-xl-4">
                   <p class="leave-group-label">Other Leave Types</p>
                   <div class="d-flex flex-column gap-2">
 
                     <label class="leave-card" id="lc-terminal" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="left" data-bs-html="true" data-bs-title="Terminal Leave"
-                      data-bs-content="✔ Leave granted to employees who are retiring, resigning, or separating from service.<br><strong>Requirements:</strong><br>• Approved resignation or retirement papers<br>• Clearance from the agency<br>• Computation of accumulated leave credits<br>• HR and head of agency approval required">
-                      <input type="radio" name="leave_type" value="terminal" class="leave-input">
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Terminal Leave"
+                      data-bs-content="✔ Granted upon retirement, resignation, or separation.<br><strong>Requirements:</strong><br>• Approved resignation / retirement papers<br>• Clearance from the agency<br>• Computation of accumulated leave credits<br>• HR and head of agency approval">
+                      <input type="checkbox" name="leave_type[]" value="terminal" class="leave-input">
                       <div class="leave-card-icon" style="background:#ede7f6;color:#6f42c1;">
                         <i class="ri ri-logout-box-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Terminal Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                     <label class="leave-card" id="lc-sil" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="left" data-bs-html="true" data-bs-title="Service Incentive Leave"
-                      data-bs-content="✔ Leave granted to employees who have rendered at least one year of service.<br><strong>Requirements:</strong><br>• Leave application form<br>• Supervisor approval<br>• Entitlement: <strong>5 days</strong> per year<br>• Must be filed at least <strong>3 days</strong> in advance">
-                      <input type="radio" name="leave_type" value="sil" class="leave-input">
+                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Service Incentive Leave"
+                      data-bs-content="✔ For employees with at least 1 year of service.<br><strong>Requirements:</strong><br>• Leave application form<br>• Supervisor approval<br>• Entitlement: <strong>5 days</strong> per year<br>• File at least <strong>3 days</strong> in advance">
+                      <input type="checkbox" name="leave_type[]" value="sil" class="leave-input">
                       <div class="leave-card-icon" style="background:#e8f5e9;color:#28c76f;">
                         <i class="ri ri-briefcase-line"></i>
                       </div>
                       <div class="leave-card-text">
                         <span class="leave-card-name">Service Incentive Leave</span>
                       </div>
-                      <i class="ri ri-radio-button-fill leave-card-check"></i>
+                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
 
                   </div>
@@ -226,11 +265,13 @@
 
               </div>{{-- /row g-3 --}}
 
-              {{-- CAUSE / Details textarea --}}
+              {{-- CAUSE textarea --}}
               <div class="mt-4 pt-3 border-top">
                 <label class="form-label fw-semibold" id="leaveDetailsLabel">
-                  CAUSE: <span class="text-warning fw-normal" style="font-size:.82rem;">(Whether illness, Personal,
-                    Resignation etc.)</span>
+                  CAUSE:
+                  <span class="text-warning fw-normal" style="font-size:.82rem;">
+                    (Whether illness, Personal, Resignation etc.)
+                  </span>
                 </label>
                 <textarea name="leave_details" id="leaveDetailsInput" class="form-control" rows="3"
                   placeholder="Enter any additional information related to your leave application…"></textarea>
@@ -240,10 +281,10 @@
           </div>{{-- /card --}}
         </div>{{-- /col-lg-8 --}}
 
-        {{-- ── RIGHT: Commutation (col-lg-4) ── --}}
-        <div class="col-lg-4">
+        {{-- ── Commutation (col-lg-4) ── --}}
+        <div class="col-12 col-lg-4">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white border-bottom px-4 py-3">
+            <div class="card-header bg-white border-bottom">
               <div class="d-flex align-items-center gap-2">
                 <i class="ri ri-exchange-funds-line text-primary fs-5"></i>
                 <div>
@@ -252,12 +293,12 @@
                 </div>
               </div>
             </div>
-            <div class="card-body px-4 py-4 d-flex flex-column">
+            <div class="card-body d-flex flex-column">
 
               <p class="text-muted mb-3" style="font-size:.82rem;line-height:1.6;">
-                Commutation allows the conversion of unused leave credits into their monetary
-                equivalent. Select <strong>Requested</strong> only if you wish to apply for
-                commutation together with this leave application.
+                Commutation converts unused leave credits into their monetary equivalent.
+                Select <strong>Requested</strong> only if you wish to apply commutation
+                together with this leave application.
               </p>
 
               <div class="d-flex flex-column gap-2">
@@ -290,7 +331,7 @@
 
               </div>
 
-              <div class="alert alert-warning d-flex gap-2 mt-auto pt-4 mb-0 py-2 px-3" style="font-size:.78rem;">
+              <div class="alert alert-warning d-flex gap-2 mt-auto mb-0 py-2 px-3" style="font-size:.78rem;">
                 <i class="ri ri-information-line flex-shrink-0 mt-1"></i>
                 <span>
                   Commutation is subject to HR approval and available budget.
@@ -304,12 +345,13 @@
 
       </div>{{-- /row g-4 --}}
 
-      {{-- ══════════════════════════════════════════
+      {{-- ════════════════════════════════════════════
            SECTION 3 — LEAVE DURATION & DATES
-      ══════════════════════════════════════════ --}}
+      ════════════════════════════════════════════ --}}
       <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom px-4 py-3">
-          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="card-header bg-white border-bottom">
+          {{-- Header row: title left, total pill right — stacks on mobile via .duration-header --}}
+          <div class="duration-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-2">
               <i class="ri ri-calendar-event-line text-primary fs-5"></i>
               <div>
@@ -317,37 +359,36 @@
                 <small class="text-muted">Sundays are automatically excluded from the working-day count</small>
               </div>
             </div>
-            <div class="d-flex align-items-center gap-2 px-3 py-2 rounded"
-              style="background:#e7edff;border:1px solid #c5ceff;">
+            <div class="total-days-pill">
               <i class="ri ri-time-line" style="color:#696cff;"></i>
-              <span style="font-size:.82rem;font-weight:600;color:#696cff;">
-                Total Working Days Applied For:
-              </span>
+              <span style="font-size:.82rem;font-weight:600;color:#696cff;">Total Working Days:</span>
               <span id="totalDaysDisplay"
-                style="font-size:1.25rem;font-weight:800;color:#696cff;min-width:2.5rem;text-align:center;">
+                style="font-size:1.25rem;font-weight:800;color:#696cff;min-width:2rem;text-align:center;">
                 0
               </span>
             </div>
           </div>
         </div>
-        <div class="card-body px-4 py-4">
 
+        <div class="card-body">
+
+          {{-- Whole day range --}}
           <div class="mb-4">
             <p class="text-uppercase fw-bold text-muted mb-2" style="font-size:.72rem;letter-spacing:.07em;">
               <i class="ri ri-calendar-2-line me-1"></i> Whole Day(s)
             </p>
             <div class="row g-3 align-items-end">
-              <div class="col-md-4">
+              <div class="col-12 col-sm-4">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="whole_day_from" id="wholeDayFrom" class="form-control"
                   onchange="computeWholeDays()">
               </div>
-              <div class="col-md-4">
+              <div class="col-12 col-sm-4">
                 <label class="form-label">End Date</label>
                 <input type="date" name="whole_day_to" id="wholeDayTo" class="form-control"
                   onchange="computeWholeDays()">
               </div>
-              <div class="col-md-4">
+              <div class="col-12 col-sm-4">
                 <label class="form-label">Computed Working Days</label>
                 <div class="input-group">
                   <span class="input-group-text bg-light">
@@ -366,8 +407,9 @@
             </div>
           </div>
 
+          {{-- Half day --}}
           <div>
-            <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
               <p class="text-uppercase fw-bold text-muted mb-0" style="font-size:.72rem;letter-spacing:.07em;">
                 <i class="ri ri-calendar-check-line me-1"></i> Half Day(s)
               </p>
@@ -387,19 +429,20 @@
         </div>
       </div>
 
-      {{-- ══════════════════════════════════════════
+      {{-- ════════════════════════════════════════════
            FOOTER — Certification & Submit
-      ══════════════════════════════════════════ --}}
+      ════════════════════════════════════════════ --}}
       <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body px-4 py-3">
+        <div class="card-body">
           <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2 px-3" style="font-size:.82rem;">
             <i class="ri ri-shield-check-line flex-shrink-0 mt-1"></i>
             <span>
-              I certify on my honor that the information provided above is true and correct, and that
-              my absence for the period stated will not be prejudicial to the interest of public service.
+              I certify on my honor that the information provided above is true and correct,
+              and that my absence for the period stated will not be prejudicial to the interest
+              of public service.
             </span>
           </div>
-          <div class="d-flex justify-content-end gap-2">
+          <div class="form-footer-actions d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-outline-secondary" onclick="resetLeaveForm()">
               <i class="ri ri-refresh-line me-1"></i> Reset
             </button>
@@ -412,302 +455,16 @@
 
     </form>
 
-    {{-- ══════════════════════════════════════════
-         SECTION 4 — LEAVE REQUESTS SUMMARY
-         Outside the form — display only.
-    ══════════════════════════════════════════ --}}
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-bottom px-4 py-3">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <i class="ri ri-history-line text-primary fs-5"></i>
-            <div>
-              <h6 class="mb-0 fw-bold">Leave Requests</h6>
-              <small class="text-muted">As of {{ now()->format('F d, Y') }}</small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-body px-4 py-3">
-
-        {{-- Tabs --}}
-        <ul class="nav nav-tabs border-bottom mb-3" role="tablist">
-
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active d-flex align-items-center gap-2" id="tab-pending" data-bs-toggle="tab"
-              data-bs-target="#pane-pending" type="button" role="tab" aria-selected="true">
-              <i class="ri ri-time-line text-warning"></i>
-              <span>Pending</span>
-              <span class="badge rounded-pill bg-warning text-dark" id="badge-pending">0</span>
-            </button>
-          </li>
-
-          <li class="nav-item" role="presentation">
-            <button class="nav-link d-flex align-items-center gap-2" id="tab-approved" data-bs-toggle="tab"
-              data-bs-target="#pane-approved" type="button" role="tab" aria-selected="false">
-              <i class="ri ri-checkbox-circle-line text-success"></i>
-              <span>Approved</span>
-              <span class="badge rounded-pill bg-success" id="badge-approved">0</span>
-            </button>
-          </li>
-
-          <li class="nav-item" role="presentation">
-            <button class="nav-link d-flex align-items-center gap-2" id="tab-disapproved" data-bs-toggle="tab"
-              data-bs-target="#pane-disapproved" type="button" role="tab" aria-selected="false">
-              <i class="ri ri-close-circle-line text-danger"></i>
-              <span>Disapproved</span>
-              <span class="badge rounded-pill bg-danger" id="badge-disapproved">0</span>
-            </button>
-          </li>
-
-        </ul>
-
-        {{-- Tab panes --}}
-        <div class="tab-content">
-
-          {{-- ── Pending ── --}}
-          <div class="tab-pane fade show active" id="pane-pending" role="tabpanel">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-              <div>
-                <p class="fw-semibold text-warning mb-0">Pending Requests</p>
-                <small class="text-muted">To modify your dates, delete your current request and submit a new one.</small>
-              </div>
-              <select class="form-select form-select-sm" style="width:130px;"
-                onchange="selectYear(this, 'pending', event)">
-                @foreach (range(2026, 2020) as $yr)
-                  <option value="{{ $yr }}" {{ $yr === 2026 ? 'selected' : '' }}>{{ $yr }}</option>
-                @endforeach
-              </select>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle" id="pending-request-table">
-                <thead class="table-primary">
-                  <tr>
-                    <th style="width:50px;">#</th>
-                    <th>Leave Type</th>
-                    <th>Date Filed</th>
-                    <th>Duration</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center" style="width:120px;">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                      <i class="ri ri-inbox-line fs-4 d-block mb-1 opacity-50"></i>
-                      No pending requests
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {{-- ── Approved ── --}}
-          <div class="tab-pane fade" id="pane-approved" role="tabpanel">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-              <p class="fw-semibold text-success mb-0">Approved Requests</p>
-              <select class="form-select form-select-sm" style="width:130px;"
-                onchange="selectYear(this, 'approved', event)">
-                @foreach (range(2026, 2020) as $yr)
-                  <option value="{{ $yr }}" {{ $yr === 2026 ? 'selected' : '' }}>{{ $yr }}</option>
-                @endforeach
-              </select>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle" id="approved-request-table">
-                <thead class="table-primary">
-                  <tr>
-                    <th style="width:50px;">#</th>
-                    <th>Leave Type</th>
-                    <th>Date Filed</th>
-                    <th>Duration</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center" style="width:120px;">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                      <i class="ri ri-inbox-line fs-4 d-block mb-1 opacity-50"></i>
-                      No approved requests
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {{-- ── Disapproved ── --}}
-          <div class="tab-pane fade" id="pane-disapproved" role="tabpanel">
-            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-              <p class="fw-semibold text-danger mb-0">Disapproved Requests</p>
-              <select class="form-select form-select-sm" style="width:130px;"
-                onchange="selectYear(this, 'disapproved', event)">
-                @foreach (range(2026, 2020) as $yr)
-                  <option value="{{ $yr }}" {{ $yr === 2026 ? 'selected' : '' }}>{{ $yr }}</option>
-                @endforeach
-              </select>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover align-middle" id="disapproved-request-table">
-                <thead class="table-primary">
-                  <tr>
-                    <th style="width:50px;">#</th>
-                    <th>Leave Type</th>
-                    <th>Date Filed</th>
-                    <th>Duration</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center" style="width:30%;">Comment</th>
-                    <th class="text-center" style="width:120px;">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
-                      <i class="ri ri-inbox-line fs-4 d-block mb-1 opacity-50"></i>
-                      No disapproved requests
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>{{-- /tab-content --}}
-      </div>{{-- /card-body --}}
-    </div>{{-- /card --}}
-
   </div>{{-- /container --}}
 
-  {{-- ══════════════════════════════════════════
-       MODAL — View Leave Request
-  ══════════════════════════════════════════ --}}
-  <div class="modal fade" id="view-leave-request-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content border-0 shadow">
-
-        <div class="modal-header border-bottom px-4 py-3">
-          <div class="d-flex align-items-center gap-2">
-            <i class="ri ri-file-search-line text-primary fs-5"></i>
-            <h6 class="modal-title fw-bold mb-0">
-              <span id="modal-employee-name"></span> — Leave Request
-            </h6>
-          </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          <span hidden id="modal-file-id"></span>
-        </div>
-
-        <div class="modal-body px-4 py-3">
-          <ul class="nav nav-tabs mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#modal-track" type="button"
-                role="tab">
-                <i class="ri ri-route-line me-1"></i> Track Document
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-attachments" type="button"
-                role="tab">
-                <i class="ri ri-attachment-2 me-1"></i> Attachments
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-file" type="button"
-                role="tab">
-                <i class="ri ri-file-text-line me-1"></i> Leave File
-              </button>
-            </li>
-          </ul>
-
-          <div class="tab-content">
-            <div class="tab-pane fade show active" id="modal-track" role="tabpanel">
-              <ul class="timeline" id="request-timeline"></ul>
-              <div class="d-flex justify-content-end mt-2" id="btn-track-container"></div>
-            </div>
-            <div class="tab-pane fade" id="modal-attachments" role="tabpanel">
-              <ul class="list-group" id="track-files-attachments-container"></ul>
-            </div>
-            <div class="tab-pane fade" id="modal-file" role="tabpanel">
-              <iframe class="frame-preview-file" src="" width="100%" height="600"
-                style="border:none;border-radius:.375rem;"></iframe>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer border-top px-4 py-3">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            <i class="ri ri-close-line me-1"></i> Close
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  {{-- ══════════════════════════════════════════
-       MODAL — View Attachment
-  ══════════════════════════════════════════ --}}
-  <div class="modal fade" id="view-attachment-modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-body p-0">
-          <iframe class="frame-preview-attachment" src="" width="100%" height="700"
-            style="border:none;border-radius:.375rem;"></iframe>
-        </div>
-        <div class="modal-footer border-top px-4 py-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            <i class="ri ri-close-line me-1"></i> Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {{-- Timeline CSS --}}
-  <style>
-    ul.timeline {
-      list-style-type: none;
-      position: relative;
-      padding-left: 2rem;
-    }
-
-    ul.timeline::before {
-      content: '';
-      background: #d4d9df;
-      display: inline-block;
-      position: absolute;
-      left: 29px;
-      width: 2px;
-      height: 100%;
-      z-index: 1;
-    }
-
-    ul.timeline>li {
-      margin: 20px 0;
-    }
-
-    ul.timeline>li::before {
-      content: '';
-      background: white;
-      display: inline-block;
-      position: absolute;
-      border-radius: 50%;
-      border: 3px solid #22c0e8;
-      left: 20px;
-      width: 20px;
-      height: 20px;
-      z-index: 2;
-    }
-  </style>
-
+  {{-- ── Scripts ────────────────────────────────────────────────── --}}
+  {{-- Form wizard (popovers, card selection, date calc, AJAX submit) --}}
   <script src="{{ asset('assets/js/leave-application.js') }}"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
 
-      // ── Popovers ──────────────────────────────────────────────
+      // ── Popovers ─────────────────────────────────────────────
       document.querySelectorAll('.leave-card[data-bs-toggle="popover"]').forEach(function(el) {
         new bootstrap.Popover(el, {
           sanitize: false

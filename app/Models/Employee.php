@@ -30,6 +30,7 @@ class Employee extends Model
     'weight_kg',
     'blood_type',
     'status',
+    'position_id',
   ];
 
   protected $casts = [
@@ -38,20 +39,28 @@ class Employee extends Model
     'weight_kg'     => 'decimal:2',
   ];
 
-    // ── Constants — must match DB enum values exactly ──────────────
+  // ── Constants (match the ENUM values in the DB) ───────────────────────────
 
-  /** employees.gender enum */
   const GENDERS = ['male', 'female', 'other'];
 
-  /** employees.civil_status enum — DB: single, married, widow */
   const CIVIL_STATUSES = ['single', 'married', 'widow'];
+
+  const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   const STATUSES = ['active', 'inactive', 'suspended'];
 
-  /** employees.blood_type enum */
-  const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  // ── Accessors ─────────────────────────────────────────────────────────────
 
-  // ── Relationships ──────────────────────────────────────────────
+  public function getFullNameAttribute(): string
+  {
+    return trim(
+      $this->first_name
+        . ($this->middle_name ? ' ' . $this->middle_name : '')
+        . ' ' . $this->last_name
+    );
+  }
+
+  // ── Relationships ─────────────────────────────────────────────────────────
 
   public function permanentAddress(): HasOne
   {
@@ -84,6 +93,14 @@ class Employee extends Model
   }
   public function faceInfo(): HasOne
   {
-      return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+    return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+  }
+  public function leaveApplications()
+  {
+    return $this->hasMany(LeaveApplication::class, 'employee_id');
+  }
+  public function position()
+  {
+    return $this->belongsTo(EmployeePosition::class, 'position_id');
   }
 }

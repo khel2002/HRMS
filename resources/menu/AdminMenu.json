@@ -49,10 +49,23 @@
       "slug": "itinerary-slip"
     },
     {
-      "url": "/admin/leave",
       "name": "Leave",
       "icon": "menu-icon icon-base ri ri-calendar-event-line",
-      "slug": "leave"
+      "slug": "leave",
+      "submenu": [
+        {
+          "url": "admin/leave-summary",
+          "name": "Leave Summary",
+          "icon": "menu-icon icon-base ri ri-list-view",
+          "slug": "leave-summary"
+        },
+        {
+          "url": "admin/leave-application",
+          "name": "Leave Application Form",
+          "icon": "menu-icon icon-base ri ri-calendar-close-line",
+          "slug": "leave-application-form"
+        }
+      ]
     },
     {
       "menuHeader": "Employment Records"
@@ -92,12 +105,6 @@
     },
     {
       "menuHeader": "Application for leave"
-    },
-    {
-      "url": "/leave-application",
-      "name": "Leave Application Form",
-      "icon": "menu-icon icon-base ri ri-calendar-close-line",
-      "slug": "leave-application-form"
     }
   ]
 }
