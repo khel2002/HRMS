@@ -51,19 +51,19 @@ Route::prefix('admin')->group(function () {
   Route::prefix('api')->group(function () {
 
     // employee lookup for leave form
-    Route::get('/employees/search', [EmployeesRegistrationController::class, 'search'])
-      ->name('api.employees.search');
+    Route::get('/employees/search', [EmployeesRegistrationController::class, 'search'])->name('api.employees.search');
 
-    // leave request list
-    Route::get('/leave-requests', [LeaveSummaryController::class, 'list'])
-      ->name('api.leave-requests.list');
+    // leave balances for a specific employee (used by the leave application form)
+    Route::get('/employees/{id}/leave-balances', [LeaveApplicationController::class, 'balances'])->name('api.employees.leave-balances');
 
-    // leave request details
-    Route::get('/leave-requests/{id}', [LeaveSummaryController::class, 'show'])
-      ->name('api.leave-requests.show');
+    // Leave requests
+    Route::get('/leave-requests', [LeaveSummaryController::class, 'list'])->name('api.leave-requests.list');
 
-    // delete leave request
-    Route::delete('/leave-requests/{id}', [LeaveSummaryController::class, 'destroy'])
-      ->name('api.leave-requests.destroy');
+    // Specific sub-routes MUST come before the /{id} wildcard
+    Route::patch('/leave-requests/{id}/remark', [LeaveSummaryController::class, 'setRemark'])->name('api.leave-requests.remark');
+
+    Route::get('/leave-requests/{id}', [LeaveSummaryController::class, 'show'])->name('api.leave-requests.show');
+
+    Route::delete('/leave-requests/{id}', [LeaveSummaryController::class, 'destroy'])->name('api.leave-requests.destroy');
   });
 });

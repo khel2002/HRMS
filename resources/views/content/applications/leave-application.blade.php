@@ -5,6 +5,34 @@
   <link rel="stylesheet" href="{{ asset('assets/css/leave-application.css') }}">
 @endsection
 
+@section('page-style')
+  <style>
+    /* ── Leave Balance Cards ─────────────────────────────────────────────── */
+    .balance-card {
+      background: #fff;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+
+    .balance-card:hover {
+      box-shadow: 0 4px 18px rgba(105, 108, 255, .10);
+      transform: translateY(-1px);
+    }
+
+    .balance-card-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(105, 108, 255, .12);
+      color: #696cff;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+  </style>
+@endsection
+
 @section('content')
 
   {{-- Toast container (outside form, fixed position) --}}
@@ -111,7 +139,7 @@
             </div>
 
             {{-- Position — auto-filled from employee record --}}
-            <div class="col-12 col-sm-6 col-md-5">
+            <div class="col-12 col-sm-6 col-md-4">
               <label class="form-label">Position / Designation</label>
               <input type="hidden" name="position_id" id="hiddenPositionId">
               <div class="input-group">
@@ -121,9 +149,18 @@
                 <div class="form-control bg-light d-flex align-items-center" id="displayPosition"
                   style="color:#555;font-size:.875rem;">—</div>
               </div>
-              <small class="text-muted" style="font-size:.75rem;">
-                Auto-filled from the selected employee record.
-              </small>
+            </div>
+
+            {{-- Office — auto-filled from employee record --}}
+            <div class="col-12 col-sm-6 col-md-4">
+              <label class="form-label">Office / Unit</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light">
+                  <i class="ri ri-building-line text-muted"></i>
+                </span>
+                <div class="form-control bg-light d-flex align-items-center" id="displayOffice"
+                  style="color:#555;font-size:.875rem;">—</div>
+              </div>
             </div>
 
             <div class="col-12 col-sm-6 col-md-4">
@@ -136,6 +173,45 @@
             </div>
 
           </div>
+        </div>
+      </div>
+
+      {{-- ════════════════════════════════════════════
+           SECTION 1b — LEAVE BALANCE SUMMARY
+           Hidden until an employee is selected.
+           Populated via JS after the balance API responds.
+      ════════════════════════════════════════════ --}}
+      <div class="card border-0 shadow-sm mb-4" id="leaveBalancePanel" style="display:none;">
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="ri ri-wallet-3-line text-primary fs-5"></i>
+              <div>
+                <h6 class="mb-0 fw-bold">Available Leave Balances</h6>
+                <small class="text-muted" id="leaveBalanceYear">Current year</small>
+              </div>
+            </div>
+            {{-- Spinner shown while fetching --}}
+            <div id="leaveBalanceSpinner" style="display:none;">
+              <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+              <small class="text-muted ms-1">Loading balances…</small>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+
+          {{-- Balance cards row — rendered by JS --}}
+          <div class="row g-3 mt-1e" id="leaveBalanceCards">
+            {{-- JS injects one .balance-card per tracked leave type here --}}
+          </div>
+
+          {{-- Error state --}}
+          <div id="leaveBalanceError" class="alert alert-warning d-flex align-items-center gap-2 mt-2 py-2 px-3"
+            style="display:none!important;font-size:.82rem;">
+            <i class="ri ri-error-warning-line flex-shrink-0"></i>
+            <span id="leaveBalanceErrorMsg">Could not load leave balances.</span>
+          </div>
+
         </div>
       </div>
 
@@ -156,14 +232,12 @@
                 </div>
               </div>
             </div>
+
             <div class="card-body">
-
               {{-- 3-column leave card grid --}}
-              <div class="row g-3">
-
+              <div class="row g-3 mt-1">
                 {{-- Column A --}}
                 <div class="col-12 col-sm-6 col-xl-4">
-                  <p class="leave-group-label">Vacation / Sick</p>
                   <div class="d-flex flex-column gap-2">
 
                     <label class="leave-card" id="lc-vacation" data-bs-toggle="popover" data-bs-trigger="hover focus"
@@ -178,6 +252,12 @@
                       </div>
                       <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
                     </label>
+                  </div>
+                </div>
+
+                {{-- Column B --}}
+                <div class="col-12 col-sm-6 col-xl-4">
+                  <div class="d-flex flex-column gap-2">
 
                     <label class="leave-card" id="lc-sick" data-bs-toggle="popover" data-bs-trigger="hover focus"
                       data-bs-placement="bottom" data-bs-html="true" data-bs-title="Sick Leave"
@@ -195,58 +275,9 @@
                   </div>
                 </div>
 
-                {{-- Column B --}}
-                <div class="col-12 col-sm-6 col-xl-4">
-                  <p class="leave-group-label">Special Privilege Leave</p>
-                  <div class="d-flex flex-column gap-2">
-
-                    <label class="leave-card" id="lc-maternity" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Maternity Leave"
-                      data-bs-content="✔ For female employees who are pregnant.<br><strong>Requirements:</strong><br>• Medical certificate with expected delivery date<br>• Notify agency at least <strong>30 days</strong> before<br>• Entitlement: <strong>105 days</strong> normal / <strong>60 days</strong> miscarriage">
-                      <input type="checkbox" name="leave_type[]" value="maternity" class="leave-input">
-                      <div class="leave-card-icon" style="background:#fce4ec;color:#e91e63;">
-                        <i class="ri ri-heart-2-line"></i>
-                      </div>
-                      <div class="leave-card-text">
-                        <span class="leave-card-name">Maternity Leave</span>
-                      </div>
-                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
-                    </label>
-
-                    <label class="leave-card" id="lc-paternity" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Paternity Leave"
-                      data-bs-content="✔ For married male employees upon delivery or miscarriage of their spouse.<br><strong>Requirements:</strong><br>• Marriage certificate (photocopy)<br>• Birth certificate or hospital record<br>• Must be filed within <strong>60 days</strong> of delivery<br>• Max <strong>7 working days</strong> per delivery (up to 4 deliveries)">
-                      <input type="checkbox" name="leave_type[]" value="paternity" class="leave-input">
-                      <div class="leave-card-icon" style="background:#f3e8ff;color:#9155fd;">
-                        <i class="ri ri-parent-line"></i>
-                      </div>
-                      <div class="leave-card-text">
-                        <span class="leave-card-name">Paternity Leave</span>
-                      </div>
-                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
-                    </label>
-
-                  </div>
-                </div>
-
                 {{-- Column C --}}
                 <div class="col-12 col-sm-6 col-xl-4">
-                  <p class="leave-group-label">Other Leave Types</p>
                   <div class="d-flex flex-column gap-2">
-
-                    <label class="leave-card" id="lc-terminal" data-bs-toggle="popover" data-bs-trigger="hover focus"
-                      data-bs-placement="bottom" data-bs-html="true" data-bs-title="Terminal Leave"
-                      data-bs-content="✔ Granted upon retirement, resignation, or separation.<br><strong>Requirements:</strong><br>• Approved resignation / retirement papers<br>• Clearance from the agency<br>• Computation of accumulated leave credits<br>• HR and head of agency approval">
-                      <input type="checkbox" name="leave_type[]" value="terminal" class="leave-input">
-                      <div class="leave-card-icon" style="background:#ede7f6;color:#6f42c1;">
-                        <i class="ri ri-logout-box-line"></i>
-                      </div>
-                      <div class="leave-card-text">
-                        <span class="leave-card-name">Terminal Leave</span>
-                      </div>
-                      <i class="ri ri-checkbox-circle-fill leave-card-check"></i>
-                    </label>
-
                     <label class="leave-card" id="lc-sil" data-bs-toggle="popover" data-bs-trigger="hover focus"
                       data-bs-placement="bottom" data-bs-html="true" data-bs-title="Service Incentive Leave"
                       data-bs-content="✔ For employees with at least 1 year of service.<br><strong>Requirements:</strong><br>• Leave application form<br>• Supervisor approval<br>• Entitlement: <strong>5 days</strong> per year<br>• File at least <strong>3 days</strong> in advance">
@@ -273,8 +304,8 @@
                     (Whether illness, Personal, Resignation etc.)
                   </span>
                 </label>
-                <textarea name="leave_details" id="leaveDetailsInput" class="form-control" rows="3"
-                  placeholder="Enter any additional information related to your leave application…"></textarea>
+                <textarea name="leave_details" id="leaveDetailsInput" class="form-control" rows="3" required
+                  placeholder="Enter any additional information related to leave application…"></textarea>
               </div>
 
             </div>{{-- /card-body --}}
@@ -316,7 +347,7 @@
                   <i class="ri ri-radio-button-fill leave-card-check"></i>
                 </label>
 
-                <label class="leave-card commut-card" id="cc-requested">
+                <label class="leave-card commut-card mb-3" id="cc-requested">
                   <input type="radio" name="commutation" value="requested" class="leave-input"
                     id="commutRequested">
                   <div class="leave-card-icon" style="background:#e8f5e9;color:#28a745;">
@@ -332,7 +363,7 @@
               </div>
 
               <div class="alert alert-warning d-flex gap-2 mt-auto mb-0 py-2 px-3" style="font-size:.78rem;">
-                <i class="ri ri-information-line flex-shrink-0 mt-1"></i>
+                <i class="ri ri-information-line flex-shrink-0 "></i>
                 <span>
                   Commutation is subject to HR approval and available budget.
                   Ensure your leave balance is sufficient before requesting.

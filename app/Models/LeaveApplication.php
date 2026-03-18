@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveApplication extends Model
 {
@@ -11,7 +12,6 @@ class LeaveApplication extends Model
   protected $fillable = [
     'employee_id',
     'leave_type_id',
-    'department',
     'cause',
     'date_filed',
     'start_date',
@@ -36,35 +36,35 @@ class LeaveApplication extends Model
 
   // ── Relationships ─────────────────────────────────────────────────────────
 
-  public function employee()
+  public function employee(): BelongsTo
   {
-    return $this->belongsTo(Employee::class);
+    return $this->belongsTo(Employee::class, 'employee_id');
   }
 
-  public function leaveType()
+  public function leaveType(): BelongsTo
   {
     return $this->belongsTo(LeaveType::class, 'leave_type_id');
   }
 
   // ── Scopes ────────────────────────────────────────────────────────────────
 
-  public function scopeForEmployee($query, int $employeeId)
+  public function scopeForEmployee($query, int $employeeId): mixed
   {
     return $query->where('employee_id', $employeeId);
   }
 
   /**
-   * Filter by the HR remarks status (pending | approved | rejected).
-   * Maps to the `remarks` column since that's the overall HR decision field.
-   * 'disapproved' from the UI maps to 'rejected' in the DB.
+   * Filter by HR verdict (remarks column).
+   * The UI uses 'disapproved' but the DB stores 'rejected' — mapped here.
    */
-  public function scopeByStatus($query, string $status)
+  public function scopeByStatus($query, string $status): mixed
   {
     $dbValue = $status === 'disapproved' ? 'rejected' : $status;
+
     return $query->where('remarks', $dbValue);
   }
 
-  public function scopeByYear($query, int $year)
+  public function scopeByYear($query, int $year): mixed
   {
     return $query->whereYear('date_filed', $year);
   }
@@ -72,10 +72,10 @@ class LeaveApplication extends Model
     // ── Accessors ─────────────────────────────────────────────────────────────
 
   /**
-   * Normalise DB `remarks` to UI status vocabulary.
-   *   'rejected'  → 'disapproved'
-   *   'pending'   → 'pending'
-   *   'approved'  → 'approved'
+   * Normalise DB `remarks` to UI vocabulary.
+   *   DB 'rejected'  → UI 'disapproved'
+   *   DB 'pending'   → UI 'pending'
+   *   DB 'approved'  → UI 'approved'
    */
   public function getStatusAttribute(): string
   {
@@ -86,7 +86,7 @@ class LeaveApplication extends Model
   }
 
   /**
-   * Build a timeline array for the view modal.
+   * Build the approval timeline for the view modal.
    */
   public function getTimelineAttribute(): array
   {

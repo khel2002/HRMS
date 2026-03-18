@@ -36,6 +36,7 @@
     document.getElementById('displayFirstName').textContent = emp.first_name || '—';
     document.getElementById('displayMiddleName').textContent = emp.middle_name || '—';
     document.getElementById('displayPosition').textContent = emp.position_name || '—';
+    document.getElementById('displayOffice').textContent = emp.office_name || '—';
 
     // Search input shows the selected employee
     if (searchInput) {
@@ -44,6 +45,9 @@
 
     closeDropdown();
     if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+    // Fetch and render leave balances for this employee
+    fetchLeaveBalances(emp.id);
   }
 
   function clearEmployee() {
@@ -60,13 +64,165 @@
     const pos = document.getElementById('displayPosition');
     if (pos) pos.textContent = '—';
 
+    const off = document.getElementById('displayOffice');
+    if (off) off.textContent = '—';
+
     if (searchInput) searchInput.value = '';
     if (clearBtn) clearBtn.style.display = 'none';
+
+    // Hide and reset the leave balance panel
+    hideBalancePanel();
   }
 
   function closeDropdown() {
     if (dropdown) dropdown.style.display = 'none';
     if (dropdown) dropdown.innerHTML = '';
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  LEAVE BALANCE PANEL
+  //
+  //  fetchLeaveBalances(employeeId)
+  //    → GET /admin/api/employees/{id}/leave-balances
+  //    → renders one card per tracked leave type (VL / SL / SIL)
+  //
+  //  Colour thresholds:
+  //    ≥ 60 % remaining → success (green)
+  //    20–59 %          → warning (amber)
+  //    < 20 %           → danger  (red)
+  // ════════════════════════════════════════════════════════════════
+  function fetchLeaveBalances(employeeId) {
+    const panel = document.getElementById('leaveBalancePanel');
+    const spinner = document.getElementById('leaveBalanceSpinner');
+    const cards = document.getElementById('leaveBalanceCards');
+    const errBox = document.getElementById('leaveBalanceError');
+    const errMsg = document.getElementById('leaveBalanceErrorMsg');
+    const yearLabel = document.getElementById('leaveBalanceYear');
+
+    if (!panel) return;
+
+    // Show panel in loading state
+    cards.innerHTML = '';
+    errBox.style.setProperty('display', 'none', 'important');
+    spinner.style.display = 'inline-flex';
+    panel.style.display = 'block';
+
+    fetch('/admin/api/employees/' + encodeURIComponent(employeeId) + '/leave-balances', {
+      headers: { Accept: 'application/json', 'X-CSRF-TOKEN': CSRF }
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        spinner.style.display = 'none';
+        if (yearLabel) yearLabel.textContent = 'As of ' + data.year;
+        renderBalanceCards(data.balances ?? []);
+      })
+      .catch(function (err) {
+        spinner.style.display = 'none';
+        errMsg.textContent = 'Could not load leave balances. Please try again.';
+        errBox.style.removeProperty('display'); // override the !important none
+        errBox.style.display = 'flex';
+        console.error('Leave balance fetch error:', err);
+      });
+  }
+
+  function renderBalanceCards(balances) {
+    const cards = document.getElementById('leaveBalanceCards');
+    if (!cards) return;
+
+    if (!balances.length) {
+      cards.innerHTML =
+        '<div class="col-12"><p class="text-muted mb-0" style="font-size:.85rem;">' +
+        '<i class="ri ri-information-line me-1"></i>No leave balance records found for this employee.' +
+        '</p></div>';
+      return;
+    }
+
+    // Icon map per leave type slug
+    const icons = {
+      vacation: 'ri-sun-line',
+      sick: 'ri-heart-pulse-line',
+      sil: 'ri-briefcase-line'
+    };
+
+    cards.innerHTML = balances
+      .map(function (b) {
+        const pct = b.total_days > 0 ? (b.remaining_days / b.total_days) * 100 : 0;
+        const barPct = Math.max(0, Math.min(100, pct));
+        const barColor = pct >= 60 ? 'bg-success' : pct >= 20 ? 'bg-warning' : 'bg-danger';
+        const textColor = pct >= 60 ? 'text-success' : pct >= 20 ? 'text-warning' : 'text-danger';
+        const icon = icons[b.slug] ?? 'ri-calendar-check-line';
+
+        return (
+          '<div class="col-12 col-sm-6 col-xl-4">' +
+          '<div class="balance-card p-3 rounded-3 border h-100">' +
+          '<div class="d-flex align-items-center justify-content-between mb-2">' +
+          '<div class="d-flex align-items-center gap-2">' +
+          '<span class="balance-card-icon"><i class="ri ' +
+          escHtml(icon) +
+          '"></i></span>' +
+          '<span class="fw-semibold" style="font-size:.875rem;">' +
+          escHtml(b.name) +
+          '</span>' +
+          '</div>' +
+          '<span class="badge rounded-pill ' +
+          (pct >= 60 ? 'bg-label-success' : pct >= 20 ? 'bg-label-warning' : 'bg-label-danger') +
+          '" ' +
+          'style="font-size:.75rem;">' +
+          b.remaining_days +
+          ' left' +
+          '</span>' +
+          '</div>' +
+          // Progress bar
+          '<div class="progress mb-2" style="height:6px;border-radius:3px;">' +
+          '<div class="progress-bar ' +
+          barColor +
+          '" role="progressbar" ' +
+          'style="width:' +
+          barPct.toFixed(1) +
+          '%" ' +
+          'aria-valuenow="' +
+          barPct.toFixed(1) +
+          '" aria-valuemin="0" aria-valuemax="100">' +
+          '</div>' +
+          '</div>' +
+          // Stats row
+          '<div class="d-flex justify-content-between" style="font-size:.78rem;">' +
+          '<span class="text-muted">Used: <strong>' +
+          b.used_days +
+          '</strong> / ' +
+          b.total_days +
+          ' days</span>' +
+          '<span class="' +
+          textColor +
+          ' fw-semibold">' +
+          Math.round(pct) +
+          '%</span>' +
+          '</div>' +
+          // Policy note
+          '<p class="text-muted mt-2 mb-0" style="font-size:.72rem;line-height:1.4;">' +
+          '<i class="ri ri-information-line me-1"></i>' +
+          escHtml(b.policy) +
+          '</p>' +
+          '</div>' +
+          '</div>'
+        );
+      })
+      .join('');
+  }
+
+  function hideBalancePanel() {
+    const panel = document.getElementById('leaveBalancePanel');
+    const cards = document.getElementById('leaveBalanceCards');
+    const errBox = document.getElementById('leaveBalanceError');
+    const spinner = document.getElementById('leaveBalanceSpinner');
+    if (!panel) return;
+    panel.style.display = 'none';
+    if (cards) cards.innerHTML = '';
+    if (errBox) errBox.style.setProperty('display', 'none', 'important');
+    if (spinner) spinner.style.display = 'none';
   }
 
   function renderDropdown(results) {
@@ -411,7 +567,7 @@
   // ── Form reset ────────────────────────────────────────────────
   window.resetLeaveForm = function () {
     form.reset();
-    clearEmployee();
+    clearEmployee(); // also calls hideBalancePanel()
 
     // Clear all leave type card highlights (checkboxes)
     document.querySelectorAll('.leave-card').forEach(c => {

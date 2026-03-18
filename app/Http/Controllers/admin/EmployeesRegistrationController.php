@@ -216,7 +216,7 @@ class EmployeesRegistrationController extends Controller
       return response()->json([]);
     }
 
-    $employees = Employee::with('position')
+    $employees = Employee::with(['position', 'office'])
       ->whereNull('deleted_at')
       // search all non-deleted employees regardless of status
       ->where(function ($query) use ($q) {
@@ -238,6 +238,8 @@ class EmployeesRegistrationController extends Controller
         'last_name'       => $e->last_name,
         'position_id'     => $e->position_id,
         'position_name'   => $e->position?->position_name ?? '—',
+        'office_id'       => $e->office_id,
+        'office_name'     => $e->office?->office_name ?? '—',
       ]);
 
     return response()->json($employees);
