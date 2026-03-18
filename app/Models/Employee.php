@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\EmployeeFaceInfo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,6 +32,7 @@ class Employee extends Model
     'blood_type',
     'status',
     'position_id',
+    'office_id',        // ← new: FK → offices.id
   ];
 
   protected $casts = [
@@ -41,13 +43,10 @@ class Employee extends Model
 
   // ── Constants (match the ENUM values in the DB) ───────────────────────────
 
-  const GENDERS = ['male', 'female', 'other'];
-
+  const GENDERS        = ['male', 'female', 'other'];
   const CIVIL_STATUSES = ['single', 'married', 'widow'];
-
-  const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-
-  const STATUSES = ['active', 'inactive', 'suspended'];
+  const BLOOD_TYPES    = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const STATUSES       = ['active', 'inactive', 'suspended'];
 
   // ── Accessors ─────────────────────────────────────────────────────────────
 
@@ -62,6 +61,7 @@ class Employee extends Model
 
   // ── Relationships ─────────────────────────────────────────────────────────
 
+  // One-to-one
   public function permanentAddress(): HasOne
   {
     return $this->hasOne(EmployeePermanentAddress::class, 'employee_id');
@@ -77,6 +77,12 @@ class Employee extends Model
     return $this->hasOne(EmployeeFamily::class, 'employee_id');
   }
 
+  public function faceInfo(): HasOne
+  {
+    return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+  }
+
+  // One-to-many
   public function children(): HasMany
   {
     return $this->hasMany(EmployeeChild::class, 'employee_id');
@@ -91,16 +97,25 @@ class Employee extends Model
   {
     return $this->hasMany(EmployeeGovernmentId::class, 'employee_id');
   }
-  public function faceInfo(): HasOne
-  {
-    return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
-  }
-  public function leaveApplications()
+
+  public function leaveApplications(): HasMany
   {
     return $this->hasMany(LeaveApplication::class, 'employee_id');
   }
-  public function position()
+
+  public function leaveBalances(): HasMany
+  {
+    return $this->hasMany(LeaveBalance::class, 'employee_id');
+  }
+
+  // Belongs-to
+  public function position(): BelongsTo
   {
     return $this->belongsTo(EmployeePosition::class, 'position_id');
+  }
+
+  public function office(): BelongsTo
+  {
+    return $this->belongsTo(Office::class, 'office_id');
   }
 }
