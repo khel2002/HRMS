@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // 'timezone' => 'Pacific/Auckland',
+    'timezone' => 'Asia/Manila',
 
     /*
     |--------------------------------------------------------------------------

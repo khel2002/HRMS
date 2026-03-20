@@ -2,6 +2,12 @@
 @section('title', 'DTR - Face Recognition')
 
 @section('content')
+<div class="row px-3">
+    <div class="alert alert-success d-none" role="alert">
+        <span class="badge badge-center rounded-pill bg-success me-3"><i class="bx bx-check"></i></span>
+        <div id="resultMsg">Success!</div>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-8">
         <div class="card h-100">
@@ -37,11 +43,8 @@
                 </div>
 
                 <hr>
-                <div id="logResult" class="mt-4" style="display:none;">
-                    <div class="alert alert-success d-flex" role="alert">
-                        <span class="badge badge-center rounded-pill bg-success me-3"><i class="bx bx-check"></i></span>
-                        <div id="resultMsg">Success!</div>
-                    </div>
+                <div id="logResult" class="mt-4" style="height:50px;">
+                    
                 </div>
                 
             </div>

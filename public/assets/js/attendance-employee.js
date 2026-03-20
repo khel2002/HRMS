@@ -1,10 +1,11 @@
 $(document).ready(function() {
-    // jQuery selectors for elements
     const $video = $('#video');
     const $btn = $('#registerBtn');
     const $instruction = $('#instruction');
     const videoElement = $video.get(0);
     const statusMessage = $('#statusBadge');
+
+    let employeeMap = {};
     
 
     async function setup() {
@@ -21,14 +22,15 @@ $(document).ready(function() {
 
 
 
-            // FETCH ENROLLED EMPLOYEES FROM YOUR BACKEND
+            // FETCH ENROLLED EMPLOYEES FROM BACKEND
             const response = await fetch('/employees/get-enrolled-descriptors');
             const enrolledEmployees = await response.json();
 
             if (enrolledEmployees.length > 0) {
                 const labeledDescriptors = enrolledEmployees.map(emp => {
+                    employeeMap[emp.id] = emp.full_name;
                     const descriptor = new Float32Array(JSON.parse(emp.face_descriptor));
-                    return new faceapi.LabeledFaceDescriptors(emp.full_name, [descriptor]);
+                    return new faceapi.LabeledFaceDescriptors(emp.id.toString(), [descriptor]);
                 });
                 // 0.6 is the distance threshold (lower is stricter)
                 faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.4);
@@ -78,26 +80,33 @@ $(document).ready(function() {
                 const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
                 if (detections.length > 0) {
+
+                    window.currentDetectedId = null;
                     
                     resizedDetections.forEach((detection, i) => {
-                        let label = "Unknown";
-
+                
                         
-                        if (faceMatcher) {
-                            const result = faceMatcher.findBestMatch(detection.descriptor);
-                            label = result.toString();
-                        }
+                       let result = faceMatcher ? faceMatcher.findBestMatch(detection.descriptor) : null;
+                       let detectedId = result ? result.label : 'unknown';
 
-                        // 4. Draw a unique box for each face found
-                        const drawBox = new faceapi.draw.DrawBox(detection.detection.box, { 
-                            label: label,
-                            boxColor: label.includes('unknown') ? 'red' : 'green' 
+                    
+                       if(detectedId !== 'unknown'){
+                        window.currentDetectedId = detectedId;
+                       }
+                        
+                       let displayName = (detectedId !== 'unknown') ? employeeMap[detectedId] : "Unkown";
+
+                       console.log("Here is the display name: " + displayName);
+                    
+                       const drawBox = new faceapi.draw.DrawBox(detection.detection.box, { 
+                            label: displayName, 
+                            boxColor: detectedId === 'unknown' ? 'red' : 'green' 
                         });
-                        drawBox.draw($canvas.get(0));
+                       drawBox.draw($canvas.get(0));
                     });
 
                     
-                    window.currentDescriptor = detections[0].descriptor;
+                    
                     $btn.prop('disabled', false);
                     $instruction.text(`${detections.length} Face(s) detected!`);
                 } else {
@@ -108,47 +117,120 @@ $(document).ready(function() {
             } catch (error) {
                 console.warn("Processing frame error:", error);
             }
-        }, 100);
+        }, 500);
+    }
+
+   
+    $('#startScanBtn').on('click', function() {
+        const inputId = $('#employeeIdInput').val().trim();
+        
+        if (!inputId) {
+            alert("Please enter or select an Employee ID first.");
+            return;
+        }
+
+        if (!window.currentDetectedId || window.currentDetectedId === 'unknown') {
+            alert("Identity not recognized or no face detected." + window.currentDetectedId);
+            return;
+        }
+
+        // 3. Compare Inputted ID vs Detected ID
+        if (inputId !== window.currentDetectedId) {
+            alert(`ID Mismatch! The face detected does not belong to ID: ${inputId}`);
+            return;
+        }
+
+       
+        captureImageAndLog(inputId);
+    });
+
+
+
+
+    function captureImageAndLog(employeeId) {
+        // Create a hidden canvas to grab the frame
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = videoElement.videoWidth;
+        tempCanvas.height = videoElement.videoHeight;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+        
+        const capturedBase64 = tempCanvas.toDataURL('image/jpeg');
+
+        
+        $('#startScanBtn').prop('disabled', true).text("Processing...");
+ 
+        $.ajax({
+            url: '/employees/attendance/log-book', 
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                employee_id: employeeId,
+                captured_image: capturedBase64
+            }),
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            success: function(response) {
+                $('#logResult').fadeIn();
+
+                $('#resultMsg').text(response.message);
+
+                $('#logResult').html(response.html);
+
+          
+               $('.alert').removeClass('d-none').addClass('d-flex');
+                $('#employeeIdInput').val('');
+               setTimeout(() => {  $('.alert').removeClass('d-flex').addClass('d-none'); }, 3000);
+            },
+            error: function(xhr, status, error) {
+                $('.alert').removeClass('d-none').addClass('d-flex');
+                $('#resultMsg').text(error.message);
+
+                //alert("An error occurred while saving the log.");
+            },
+            complete: function() {
+                $('#startScanBtn').prop('disabled', false).text("Log Book");
+            }
+        });
     }
 
     // Pag Start sa setup
     setup();
 
    
-    $btn.on('click', function() {
+    // $btn.on('click', function() {
        
-        if (!window.currentDescriptor) return;
+    //     if (!window.currentDescriptor) return;
 
-        const employeeId = $('#employeeSelect').val();
+    //     const employeeId = $('#employeeSelect').val();
 
-        // UI Feedback: Change button text and disable it
-        const $this = $(this);
-        $this.text("Saving to Database...").prop('disabled', true);
+    //     // UI Feedback: Change button text and disable it
+    //     const $this = $(this);
+    //     $this.text("Saving to Database...").prop('disabled', true);
 
-        $.ajax({
-            url:`/admin/employees/facial-recognition/save`,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
+    //     $.ajax({
+    //         url:`/admin/employees/facial-recognition/save`,
+    //         method: 'POST',
+    //         contentType: 'application/json',
+    //         data: JSON.stringify({
              
-                descriptor: Array.from(window.currentDescriptor),
-                employee_id: employeeId
+    //             descriptor: Array.from(window.currentDescriptor),
+    //             employee_id: employeeId
 
-            }),
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(response) {
-                alert('Success! Face data enrolled.');
-                //  window.location.reload();
-            },
-            error: function(xhr, status, error) {
-                console.error("AJAX Error:", error);
+    //         }),
+    //         headers: {
+    //             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    //         },
+    //         success: function(response) {
+    //             alert('Success! Face data enrolled.');
+    //             //  window.location.reload();
+    //         },
+    //         error: function(xhr, status, error) {
+    //             console.error("AJAX Error:", error);
              
-                $this.text("Enroll Face").prop('disabled', false);
-            }
-        });
-    });
+    //             $this.text("Enroll Face").prop('disabled', false);
+    //         }
+    //     });
+    // });
 
     $('#employeeIdInput').on('keyup', async function() {
         const query = $(this).val().toLowerCase();
