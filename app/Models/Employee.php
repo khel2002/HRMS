@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\EmployeeFaceInfo;
 use App\Models\UserLogs;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,6 +32,8 @@ class Employee extends Model
     'weight_kg',
     'blood_type',
     'status',
+    'position_id',
+    'office_id',        // ← new: FK → offices.id
   ];
 
   protected $casts = [
@@ -39,21 +42,27 @@ class Employee extends Model
     'weight_kg'     => 'decimal:2',
   ];
 
-    // ── Constants — must match DB enum values exactly ──────────────
+  // ── Constants (match the ENUM values in the DB) ───────────────────────────
 
-  /** employees.gender enum */
-  const GENDERS = ['male', 'female', 'other'];
-
-  /** employees.civil_status enum — DB: single, married, widow */
+  const GENDERS        = ['male', 'female', 'other'];
   const CIVIL_STATUSES = ['single', 'married', 'widow'];
+  const BLOOD_TYPES    = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const STATUSES       = ['active', 'inactive', 'suspended'];
 
-  const STATUSES = ['active', 'inactive', 'suspended'];
+  // ── Accessors ─────────────────────────────────────────────────────────────
 
-  /** employees.blood_type enum */
-  const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  public function getFullNameAttribute(): string
+  {
+    return trim(
+      $this->first_name
+        . ($this->middle_name ? ' ' . $this->middle_name : '')
+        . ' ' . $this->last_name
+    );
+  }
 
-  // ── Relationships ──────────────────────────────────────────────
+  // ── Relationships ─────────────────────────────────────────────────────────
 
+  // One-to-one
   public function permanentAddress(): HasOne
   {
     return $this->hasOne(EmployeePermanentAddress::class, 'employee_id');
@@ -69,6 +78,12 @@ class Employee extends Model
     return $this->hasOne(EmployeeFamily::class, 'employee_id');
   }
 
+  public function faceInfo(): HasOne
+  {
+    return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+  }
+
+  // One-to-many
   public function children(): HasMany
   {
     return $this->hasMany(EmployeeChild::class, 'employee_id');
@@ -83,9 +98,26 @@ class Employee extends Model
   {
     return $this->hasMany(EmployeeGovernmentId::class, 'employee_id');
   }
-  public function faceInfo(): HasOne
+
+  public function leaveApplications(): HasMany
   {
-      return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+    return $this->hasMany(LeaveApplication::class, 'employee_id');
+  }
+
+  public function leaveBalances(): HasMany
+  {
+    return $this->hasMany(LeaveBalance::class, 'employee_id');
+  }
+
+  // Belongs-to
+  public function position(): BelongsTo
+  {
+    return $this->belongsTo(EmployeePosition::class, 'position_id');
+  }
+
+  public function office(): BelongsTo
+  {
+    return $this->belongsTo(Office::class, 'office_id');
   }
   public function userLogs(){
     return $this->hasMany(UserLogs::class,'employee_number');

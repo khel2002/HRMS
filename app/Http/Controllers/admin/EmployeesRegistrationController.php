@@ -9,6 +9,7 @@ use App\Models\EmployeeEducation;
 use App\Models\EmployeeFaceInfo;
 use App\Models\EmployeeGovernmentId;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -197,6 +198,51 @@ class EmployeesRegistrationController extends Controller
     if (!empty($rows)) {
       $model::insert($rows);
     }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  SEARCH  — API endpoint for the leave application form
+  //  GET /api/employees/search?q=...
+  //  Returns up to 15 active employees matching the query
+  //  (employee number, first, middle, or last name).
+  //  Each result includes position_name via the position relation.
+  // ──────────────────────────────────────────────────────────────
+
+  public function search(Request $request): JsonResponse
+  {
+    $q = trim($request->input('q', ''));
+
+    if (strlen($q) < 2) {
+      return response()->json([]);
+    }
+
+    $employees = Employee::with(['position', 'office'])
+      ->whereNull('deleted_at')
+      // search all non-deleted employees regardless of status
+      ->where(function ($query) use ($q) {
+        $query->where('employee_number', 'like', "%{$q}%")
+          ->orWhere('first_name',    'like', "%{$q}%")
+          ->orWhere('last_name',     'like', "%{$q}%")
+          ->orWhere('middle_name',   'like', "%{$q}%")
+          ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$q}%"]);
+      })
+      ->orderBy('last_name')
+      ->orderBy('first_name')
+      ->limit(15)
+      ->get()
+      ->map(fn($e) => [
+        'id'              => $e->id,
+        'employee_number' => $e->employee_number,
+        'first_name'      => $e->first_name,
+        'middle_name'     => $e->middle_name,
+        'last_name'       => $e->last_name,
+        'position_id'     => $e->position_id,
+        'position_name'   => $e->position?->position_name ?? '—',
+        'office_id'       => $e->office_id,
+        'office_name'     => $e->office?->office_name ?? '—',
+      ]);
+
+    return response()->json($employees);
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -419,7 +465,7 @@ class EmployeesRegistrationController extends Controller
   public function facialRecognitionRegistration()
   {
 
-   $employeesWithoutFace = Employee::where('status', 'inactive')
+    $employeesWithoutFace = Employee::where('status', 'inactive')
       ->get();
 
     return view('content.admin.employees-registration.facial-recognitation', compact('employeesWithoutFace'));
@@ -429,33 +475,36 @@ class EmployeesRegistrationController extends Controller
   {
 
     try {
-     
-        $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'descriptor'  => 'required|array|min:128' 
-        ]);
+
+      $request->validate([
+        'employee_id' => 'required|exists:employees,id',
+        'descriptor'  => 'required|array|min:128'
+      ]);
 
 
+      // return response()->json([
+      //     'status' => 'success',
+      //     'message' => $request->all()
+      // ]);
 
-        
-        EmployeeFaceInfo::updateOrCreate(
-            ['employee_id' => $request->employee_id],
-            [
-                'descriptor' => json_encode($request->descriptor),
-            ]
-        );
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Facial data enrolled successfully!'
-        ]);
+      EmployeeFaceInfo::updateOrCreate(
+        ['employee_id' => $request->employee_id],
+        [
+          'descriptor' => json_encode($request->descriptor),
+        ]
+      );
 
+      return response()->json([
+        'status' => 'success',
+        'message' => 'Facial data enrolled successfully!'
+      ]);
     } catch (\Exception $e) {
-        // Log::error("Face Enrollment Error: " . $e->getMessage());
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
+      // Log::error("Face Enrollment Error: " . $e->getMessage());
+      return response()->json([
+        'status' => 'error',
+        'message' => $e->getMessage()
+      ], 500);
     }
   }
 }
