@@ -1,17 +1,21 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-// admins
 use App\Http\Controllers\admin\AdminEmployeesController;
 use App\Http\Controllers\admin\EmployeesRegistrationController;
 use App\Http\Controllers\admin\PsgcController;
 use App\Http\Controllers\authentications\LoginBasic;
 use App\Http\Controllers\LeaveApplicationController;
+use App\Models\LogImage;
+use App\Models\UserLogs;
+use Illuminate\Support\Facades\Route;
 
 // Main Page Route
+
 Route::get('/', [LoginBasic::class, 'index'])->name('home');
 Route::get('/face-recognition-login', [LoginBasic::class, 'faceRecognitionLogin'])->name('face-recognition-login');
 Route::get('/employees/get-enrolled-descriptors', [LoginBasic::class, 'getEnrolledDescriptors'])->name('employees.enrolled.descriptors');
+Route::post('/employees/attendance/log-book',[LoginBasic::class,'storeLog'])->name('employees.attendance.log-book');
+
 
 //employee management
 
@@ -43,3 +47,21 @@ Route::prefix('admin')->group(function () {
 });
 
 Route::get('/leave-application', [LeaveApplicationController::class, 'index'])->name('leave-application-form');
+
+
+Route::get('/', function (){
+
+//  $logs = UserLogs::find(35);
+
+//   //$logs = LogImage::all();
+
+
+
+
+//   dd($logs->imageLogs);
+ //$userLogs = UserLogs::with('imageLogs')->get();
+  $userLogs = LogImage::orderBy('id')->get();
+
+  return view('_partials._attendance-log-item', compact('userLogs'));
+ 
+});

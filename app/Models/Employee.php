@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\EmployeeFaceInfo;
+use App\Models\UserLogs;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -85,5 +86,8 @@ class Employee extends Model
   public function faceInfo(): HasOne
   {
       return $this->hasOne(EmployeeFaceInfo::class, 'employee_id');
+  }
+  public function userLogs(){
+    return $this->hasMany(UserLogs::class,'employee_number');
   }
 }
