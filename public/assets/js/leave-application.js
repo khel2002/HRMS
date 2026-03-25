@@ -72,6 +72,7 @@
 
     // Hide and reset the leave balance panel
     hideBalancePanel();
+    currentBalances = {};
   }
 
   function closeDropdown() {
@@ -91,6 +92,10 @@
   //    20–59 %          → warning (amber)
   //    < 20 %           → danger  (red)
   // ════════════════════════════════════════════════════════════════
+  // ── Leave balance store (populated when employee is selected) ────
+  // Keyed by slug: { vacation: {...}, sick: {...}, sil: {...} }
+  let currentBalances = {};
+
   function fetchLeaveBalances(employeeId) {
     const panel = document.getElementById('leaveBalancePanel');
     const spinner = document.getElementById('leaveBalanceSpinner');
@@ -117,7 +122,15 @@
       .then(function (data) {
         spinner.style.display = 'none';
         if (yearLabel) yearLabel.textContent = 'As of ' + data.year;
+
+        // Store balances for real-time checking
+        currentBalances = {};
+        (data.balances ?? []).forEach(function (b) {
+          currentBalances[b.slug] = b;
+        });
+
         renderBalanceCards(data.balances ?? []);
+        checkBalanceWarnings(); // run once after load
       })
       .catch(function (err) {
         spinner.style.display = 'none';
@@ -157,7 +170,9 @@
 
         return (
           '<div class="col-12 col-sm-6 col-xl-4">' +
-          '<div class="balance-card p-3 rounded-3 border h-100">' +
+          '<div class="balance-card p-3 rounded-3 border h-100" data-slug="' +
+          escHtml(b.slug) +
+          '">' +
           '<div class="d-flex align-items-center justify-content-between mb-2">' +
           '<div class="d-flex align-items-center gap-2">' +
           '<span class="balance-card-icon"><i class="ri ' +
@@ -223,6 +238,87 @@
     if (cards) cards.innerHTML = '';
     if (errBox) errBox.style.setProperty('display', 'none', 'important');
     if (spinner) spinner.style.display = 'none';
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  BALANCE WARNINGS
+  //
+  //  Called whenever: leave type selection changes OR total days changes.
+  //  For each checked leave type, compare requested total_days against
+  //  the employee's remaining balance and:
+  //    • Highlight the matching balance card (active border + glow)
+  //    • Show an inline warning if requested > remaining
+  //    • Dim cards for leave types that are NOT selected
+  // ════════════════════════════════════════════════════════════════
+  function checkBalanceWarnings() {
+    // Which leave type slugs are currently checked?
+    const selectedSlugs = [...document.querySelectorAll('input[name="leave_type[]"]:checked')].map(function (inp) {
+      return inp.value;
+    });
+
+    const totalRequested = parseFloat(document.getElementById('hiddenTotalDays')?.value ?? '0') || 0;
+
+    // Remove all existing balance warnings
+    document.querySelectorAll('.balance-warning').forEach(function (el) {
+      el.remove();
+    });
+
+    // Reset all balance card styles
+    document.querySelectorAll('.balance-card').forEach(function (card) {
+      card.style.borderColor = '';
+      card.style.boxShadow = '';
+      card.style.opacity = '';
+    });
+
+    if (!selectedSlugs.length || !Object.keys(currentBalances).length) return;
+
+    const cards = document.getElementById('leaveBalanceCards');
+    if (!cards) return;
+
+    // Dim all cards first, then highlight selected ones
+    document.querySelectorAll('.balance-card').forEach(function (card) {
+      const slug = card.dataset.slug;
+      const isSelected = selectedSlugs.includes(slug);
+      card.style.opacity = isSelected ? '1' : '0.45';
+    });
+
+    // Check each selected leave type
+    selectedSlugs.forEach(function (slug) {
+      const balance = currentBalances[slug];
+      if (!balance) return;
+
+      const cardEl = cards.querySelector('.balance-card[data-slug="' + slug + '"]');
+      if (!cardEl) return;
+
+      const remaining = balance.remaining_days ?? 0;
+      const isExceeded = totalRequested > remaining;
+
+      if (isExceeded) {
+        // Red highlight — insufficient balance
+        cardEl.style.borderColor = '#ea5455';
+        cardEl.style.boxShadow = '0 0 0 3px rgba(234,84,85,.18)';
+
+        // Inject warning below the policy note inside the card
+        if (!cardEl.querySelector('.balance-warning')) {
+          const warn = document.createElement('div');
+          warn.className = 'balance-warning d-flex align-items-start gap-1 mt-2';
+          warn.style.cssText = 'font-size:.72rem;color:#ea5455;line-height:1.4;';
+          warn.innerHTML =
+            '<i class="ri ri-error-warning-line flex-shrink-0 mt-1" style="font-size:.85rem;"></i>' +
+            '<span>Requested <strong>' +
+            totalRequested +
+            '</strong> day(s) exceeds your remaining balance of ' +
+            '<strong>' +
+            remaining +
+            '</strong> day(s).</span>';
+          cardEl.appendChild(warn);
+        }
+      } else {
+        // Green/normal highlight — sufficient balance
+        cardEl.style.borderColor = '#28c76f';
+        cardEl.style.boxShadow = '0 0 0 3px rgba(40,199,111,.15)';
+      }
+    });
   }
 
   function renderDropdown(results) {
@@ -317,6 +413,8 @@
         // Toggle this card
         input.checked = !input.checked;
         card.classList.toggle('lc-selected', input.checked);
+        // Re-check balance warnings whenever selection changes
+        checkBalanceWarnings();
       } else {
         // Radio — single select within same name group
         input.checked = true;
@@ -353,6 +451,8 @@
     // Keep the hidden field in sync so the server always receives the correct value
     const hidden = document.getElementById('hiddenTotalDays');
     if (hidden) hidden.value = total;
+    // Re-evaluate balance warnings whenever days change
+    checkBalanceWarnings();
   }
 
   window.computeWholeDays = function () {
@@ -595,6 +695,10 @@
     }
 
     wholeDays = halfDayDays = hdIdx = 0;
+    currentBalances = {};
+    document.querySelectorAll('.balance-warning').forEach(function (el) {
+      el.remove();
+    });
     const td = document.getElementById('totalDaysDisplay');
     const wr = document.getElementById('wholeDayResult');
     const we = document.getElementById('wholeDayError');

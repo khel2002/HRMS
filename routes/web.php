@@ -49,6 +49,7 @@ Route::prefix('admin')->group(function () {
   Route::get('/leave-application', [LeaveApplicationController::class, 'index'])->name('leave-application-form');
   Route::post('/leave-application', [LeaveApplicationController::class, 'store'])->name('leave-application-store');
   Route::get('/leave-summary', [LeaveSummaryController::class, 'index'])->name('leave-summary');
+  Route::get('/leave-pdf', [LeaveSummaryController::class, 'generate']);
 
   // ── API Routes ─────────────────────────────────────────────
   Route::prefix('api')->group(function () {
@@ -64,6 +65,9 @@ Route::prefix('admin')->group(function () {
 
     // Specific sub-routes MUST come before the /{id} wildcard
     Route::patch('/leave-requests/{id}/remark', [LeaveSummaryController::class, 'setRemark'])->name('api.leave-requests.remark');
+
+    // PDF download — must be before /{id} wildcard
+    Route::get('/leave-requests/{id}/pdf', [LeaveSummaryController::class, 'generatePdf'])->name('api.leave-requests.pdf');
 
     Route::get('/leave-requests/{id}', [LeaveSummaryController::class, 'show'])->name('api.leave-requests.show');
 
