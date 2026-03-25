@@ -154,7 +154,15 @@ function lrActionCell(row) {
       '<i class="icon-base ri ri-delete-bin-line me-2"></i>Delete</a></li>' +
       '</ul></div>';
 
-    return '<div class="d-flex align-items-center justify-content-center gap-1">' + viewBtn + menu + '</div>';
+    // Separate PDF button
+    let pdfBtn =
+      '<a href="/admin/api/leave-requests/' +
+      id +
+      '/pdf" target="_blank" ' +
+      'class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="Download PDF">' +
+      '<i class="icon-base ri ri-file-pdf-line"></i></a>';
+
+    return '<div class="d-flex align-items-center justify-content-center gap-1">' + viewBtn + pdfBtn + menu + '</div>';
   }
 
   var deleteBtn =

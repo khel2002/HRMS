@@ -22,16 +22,10 @@
       "slug": "employee-registration"
     },
     {
-      "url": "/admin/personal-information",
-      "name": "Personal Information",
-      "icon": "menu-icon icon-base ri ri-user-line",
-      "slug": "personal-information"
-    },
-    {
-      "url": "/admin/education-background",
-      "name": "Education Background",
-      "icon": "menu-icon icon-base ri ri-book-open-line",
-      "slug": "education-background"
+      "url": "/admin/user-accounts",
+      "name": "User Accounts",
+      "icon": "menu-icon icon-base ri ri-account-circle-2-line",
+      "slug": "user-account"
     },
     {
       "menuHeader": "Attendance & Request"

@@ -80,12 +80,37 @@ class LeaveApplicationController extends Controller
 
       $row = $balanceRows->get($leaveType->id);
 
+      // ── Apply policy rules ─────────────────────────────────────────────
+      //
+      //  Vacation Leave  — 5 days/year, resets every year (no carry-over)
+      //  Service Incentive Leave — 5 days/year, must use within year (resets to 0)
+      //  Sick Leave      — 5 days/year, unused carries over, max 14 accumulated
+      //
+      // If no DB row exists we use the default allocation for the year.
+      // The remaining_days stored in DB is authoritative; we just cap SL at 14.
+
+      $total     = $row?->total_days     ?? $defaults[$slug]['total'];
+      $used      = $row?->used_days       ?? 0;
+      $remaining = $row?->remaining_days  ?? $defaults[$slug]['total'];
+
+      // Enforce Sick Leave carry-over cap: remaining can never exceed 14
+      if ($slug === 'sick') {
+        $remaining = min($remaining, 14);
+        $total     = min($total, 14); // display total respects the cap too
+      }
+
+      // VL and SIL: remaining cannot exceed the annual allocation (5)
+      if ($slug === 'vacation' || $slug === 'sil') {
+        $remaining = min($remaining, 5);
+        $total     = 5; // always show 5 as the annual total
+      }
+
       $balances[] = [
         'slug'           => $slug,
         'name'           => $dbName,
-        'total_days'     => $row?->total_days     ?? $defaults[$slug]['total'],
-        'used_days'      => $row?->used_days       ?? 0,
-        'remaining_days' => $row?->remaining_days  ?? $defaults[$slug]['total'],
+        'total_days'     => $total,
+        'used_days'      => $used,
+        'remaining_days' => max(0, $remaining),
         'policy'         => $defaults[$slug]['policy'],
       ];
     }
@@ -158,9 +183,7 @@ class LeaveApplicationController extends Controller
     $slugToName = [
       'vacation'  => 'Vacation Leave',
       'sick'      => 'Sick Leave',
-      'maternity' => 'Maternity Leave',
-      'paternity' => 'Paternity Leave',
-      'terminal'  => 'Terminal Leave',
+
       'sil'       => 'Service Incentive Leave',
     ];
 
