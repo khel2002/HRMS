@@ -40,9 +40,14 @@ Route::prefix('admin')->group(function () {
     Route::get('/{id}', [EmployeesRegistrationController::class, 'show'])->name('employee-show');
     Route::delete('/{id}', [EmployeesRegistrationController::class, 'destroy'])->name('employee-destroy');
   });
-  //
-  Route::get('/account-management', [AccountManagementController::class, 'index'])->name('account-management');
-
+  Route::prefix('account-management')->group(function () {
+    Route::get('/',           [AccountManagementController::class, 'index'])->name('account-management.index');
+    Route::post('/',          [AccountManagementController::class, 'store'])->name('account-management.store');
+    Route::get('/{user}',    [AccountManagementController::class, 'show'])->name('account-management.show');
+    Route::put('/{user}',    [AccountManagementController::class, 'update'])->name('account-management.update');
+    Route::patch('/{user}/change-status', [AccountManagementController::class, 'changeStatus'])->name('account-management.change-status');
+    Route::delete('/{user}', [AccountManagementController::class, 'destroy'])->name('account-management.destroy');
+  });
   // ── PSGC address cascade proxy ─────────────────────────────
   Route::prefix('psgc')->group(function () {
     Route::get('/regions', [PsgcController::class, 'regions']);
