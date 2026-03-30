@@ -119,7 +119,14 @@ class Employee extends Model
   {
     return $this->belongsTo(Office::class, 'office_id');
   }
-  public function userLogs(){
-    return $this->hasMany(UserLogs::class,'employee_number');
+
+  public function user()
+  {
+    return $this->hasOne(User::class);
+  }
+
+  public function userLogs()
+  {
+    return $this->hasMany(UserLogs::class, 'employee_number');
   }
 }

@@ -19,4 +19,9 @@ class Office extends Model
   {
     return $this->hasMany(Employee::class, 'office_id');
   }
+
+  public function users()
+  {
+    return $this->hasMany(User::class);
+  }
 }

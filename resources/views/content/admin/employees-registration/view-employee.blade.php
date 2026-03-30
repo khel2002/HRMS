@@ -36,8 +36,8 @@
         </h3>
         <div class="d-flex flex-wrap gap-2 mt-2">
           <span class="ep"><i class="ri ri-id-card-line me-1"></i>{{ $employee->employee_number }}</span>
-          <span class="ep"><i class="ri ri-mail-line me-1"></i>{{ $employee->email ?: '—' }}</span>
-          <span class="ep"><i class="ri ri-phone-line me-1"></i>{{ $employee->mobile_number ?: '—' }}</span>
+          <span class="ep"><i
+              class="ri ri-briefcase-line me-1"></i>{{ $employee->position?->position_name ?: '—' }}</span>
         </div>
       </div>
       <div class="d-flex flex-wrap gap-2">
@@ -65,6 +65,10 @@
           @foreach ([
           'Date of Birth' => $dob ? $dob->format('F d, Y') . ' (Age ' . $dob->age . ')' : '—',
           'Place of Birth' => $employee->place_of_birth ?: '—',
+          'Email' => $employee->email ?: '—',
+          'Mobile' => $employee->mobile_number ?: '—',
+          'Position' => $employee->position?->position_name ?: '—',
+          'Office / Unit' => $employee->office?->office_name ?: '—',
           'Registered' => $employee->created_at->format('M d, Y'),
       ] as $lbl => $val)
             <div class="sv-row">

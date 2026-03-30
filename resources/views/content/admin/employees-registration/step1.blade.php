@@ -18,6 +18,40 @@
     @enderror
   </div>
 
+  {{-- Position --}}
+  <div class="col-md-4">
+    <label class="form-label">Position / Designation <span class="text-danger">*</span></label>
+    <select name="position_id" class="form-select @error('position_id') is-invalid @enderror" required>
+      <option value=""></option>
+      @foreach (\App\Models\EmployeePosition::orderBy('position_name')->get() as $position)
+        <option value="{{ $position->id }}" {{ old('position_id') == $position->id ? 'selected' : '' }}>
+          {{ $position->position_name }}
+        </option>
+      @endforeach
+    </select>
+    @error('position_id')
+      <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+  </div>
+
+
+  {{-- Office --}}
+  <div class="col-md-4">
+    <label class="form-label">Office / Unit <span class="text-danger">*</span></label>
+    <select name="office_id" class="form-select @error('office_id') is-invalid @enderror" required>
+      <option value=""></option>
+      @foreach (\App\Models\Office::orderBy('office_name')->get() as $office)
+        <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
+          {{ $office->office_name }}
+        </option>
+      @endforeach
+    </select>
+    @error('office_id')
+      <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+  </div>
+
+
   {{-- First Name --}}
   <div class="col-md-4">
     <label class="form-label">First Name <span class="text-danger">*</span></label>
@@ -48,25 +82,7 @@
     @enderror
   </div>
 
-  {{-- Date of Birth --}}
-  <div class="col-md-4">
-    <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
-    <input type="date" name="date_of_birth" class="form-control @error('date_of_birth') is-invalid @enderror"
-      value="{{ old('date_of_birth') }}" required>
-    @error('date_of_birth')
-      <div class="invalid-feedback">{{ $message }}</div>
-    @enderror
-  </div>
 
-  {{-- Place of Birth --}}
-  <div class="col-md-4">
-    <label class="form-label">Place of Birth <span class="text-danger">*</span></label>
-    <input type="text" name="place_of_birth" class="form-control @error('place_of_birth') is-invalid @enderror"
-      value="{{ old('place_of_birth') }}" required>
-    @error('place_of_birth')
-      <div class="invalid-feedback">{{ $message }}</div>
-    @enderror
-  </div>
 
   {{-- Gender --}}
   <div class="col-md-3">
@@ -120,6 +136,26 @@
     <input type="text" name="citizenship" class="form-control @error('citizenship') is-invalid @enderror"
       placeholder="" value="{{ old('citizenship') }}" required>
     @error('citizenship')
+      <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+  </div>
+
+  {{-- Date of Birth --}}
+  <div class="col-md-4">
+    <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+    <input type="date" name="date_of_birth" class="form-control @error('date_of_birth') is-invalid @enderror"
+      value="{{ old('date_of_birth') }}" required>
+    @error('date_of_birth')
+      <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+  </div>
+
+  {{-- Place of Birth --}}
+  <div class="col-md-4">
+    <label class="form-label">Place of Birth <span class="text-danger">*</span></label>
+    <input type="text" name="place_of_birth" class="form-control @error('place_of_birth') is-invalid @enderror"
+      value="{{ old('place_of_birth') }}" required>
+    @error('place_of_birth')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror
   </div>

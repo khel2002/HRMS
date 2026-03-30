@@ -102,14 +102,9 @@ function lrSetError(tab, msg) {
 
 // ── Action cell ──────────────────────────────────────────────────────────────
 //
-//  Pending rows  → View  +  Change Remark dropdown (⋮)
-//                           Approve / Set Pending / Disapprove / ─── / Delete
-//
-//  Approved /
-//  Disapproved   → View  +  Delete
-//
-//  onclick calls are plain global function names — no namespace needed.
-//  Only the integer row.id appears in onclick — never employee names.
+//  Pending rows    → View  +  PDF  +  Change Remark dropdown (⋮)
+//  Approved rows   → View  +  PDF  +  Delete
+//  Disapproved     → View  +  Delete
 
 function lrActionCell(row) {
   var id = row.id;
@@ -121,16 +116,21 @@ function lrActionCell(row) {
     ')">' +
     '<i class="icon-base ri ri-eye-line"></i></button>';
 
+  var pdfBtn =
+    '<a href="/admin/api/leave-requests/' +
+    id +
+    '/pdf" target="_blank"' +
+    ' class="btn btn-sm btn-icon btn-text-danger rounded-pill" title="Download PDF">' +
+    '<i class="icon-base ri ri-file-pdf-line"></i></a>';
+
   if (row.status === 'pending') {
-    // Dropdown uses <ul>/<li> — Bootstrap 5 standard structure
     var ddId = 'dd-' + id;
     var menu =
       '<div class="dropdown">' +
       '<button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill"' +
       ' data-bs-toggle="dropdown" aria-expanded="false" id="' +
       ddId +
-      '"' +
-      ' title="Change Remark">' +
+      '" title="Change Remark">' +
       '<i class="icon-base ri ri-more-2-line"></i></button>' +
       '<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="' +
       ddId +
@@ -154,14 +154,6 @@ function lrActionCell(row) {
       '<i class="icon-base ri ri-delete-bin-line me-2"></i>Delete</a></li>' +
       '</ul></div>';
 
-    // Separate PDF button
-    let pdfBtn =
-      '<a href="/admin/api/leave-requests/' +
-      id +
-      '/pdf" target="_blank" ' +
-      'class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="Download PDF">' +
-      '<i class="icon-base ri ri-file-pdf-line"></i></a>';
-
     return '<div class="d-flex align-items-center justify-content-center gap-1">' + viewBtn + pdfBtn + menu + '</div>';
   }
 
@@ -171,6 +163,14 @@ function lrActionCell(row) {
     id +
     ')">' +
     '<i class="icon-base ri ri-delete-bin-line"></i></button>';
+
+  // Approved → View + PDF + Delete
+  // Disapproved → View + Delete only (no PDF for disapproved)
+  if (row.status === 'approved') {
+    return (
+      '<div class="d-flex align-items-center justify-content-center gap-1">' + viewBtn + pdfBtn + deleteBtn + '</div>'
+    );
+  }
 
   return '<div class="d-flex align-items-center justify-content-center gap-1">' + viewBtn + deleteBtn + '</div>';
 }
@@ -214,8 +214,6 @@ function lrBuildRow(row, index, tab) {
 }
 
 // ── Bootstrap Dropdown init ──────────────────────────────────────────────────
-// Bootstrap 5 does NOT auto-init components injected via innerHTML.
-// Must be called after every innerHTML write that contains dropdown triggers.
 function lrInitDropdowns(container) {
   container.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (btn) {
     try {
@@ -292,9 +290,8 @@ function viewLeave(id) {
   var bodyEl = document.getElementById('modal-detail-body');
   var footer = document.getElementById('modal-detail-footer');
 
-  // Guard: if the modal HTML is missing from the DOM, fail visibly
   if (!modalEl || !skeleton || !bodyEl || !footer) {
-    console.error('[viewLeave] Modal elements not found in DOM. Check that view-modal.blade.php is included.');
+    console.error('[viewLeave] Modal elements not found in DOM.');
     alert('View modal is not available. Please contact the administrator.');
     return;
   }
@@ -304,8 +301,6 @@ function viewLeave(id) {
   document.getElementById('modal-detail-title').textContent = 'Leave Request';
   document.getElementById('modal-detail-subtitle').textContent = '';
 
-  // bootstrap.Modal.getOrCreate() requires Bootstrap ≥ 5.2.
-  // Use new bootstrap.Modal() which works on all Bootstrap 5.x versions.
   var bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
   bsModal.show();
 
@@ -331,14 +326,6 @@ function lrPopulateModal(r, footer) {
   document.getElementById('modal-detail-title').textContent = r.employee_name || 'Leave Request';
   document.getElementById('modal-detail-subtitle').textContent = r.employee_number ? '#' + r.employee_number : '';
 
-  var initials = (r.employee_name || '?')
-    .split(' ')
-    .map(function (w) {
-      return w[0] || '';
-    })
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
   document.getElementById('modal-emp-name').textContent = r.employee_name || '—';
   document.getElementById('modal-emp-meta').textContent = [r.position, r.office].filter(Boolean).join(' · ') || '—';
   document.getElementById('modal-status-badge').innerHTML = lrStatusBadge(r.status || 'pending');
@@ -396,9 +383,20 @@ function lrPopulateModal(r, footer) {
     }
   }
 
+  // Footer: Close button always shown; PDF button added for approved records
+  var pdfLink =
+    r.status === 'approved'
+      ? '<a href="/admin/api/leave-requests/' +
+        r.id +
+        '/pdf" target="_blank"' +
+        ' class="btn btn-danger btn-sm">' +
+        '<i class="ri ri-file-pdf-line me-1"></i>Download PDF</a>'
+      : '';
+
   footer.innerHTML =
     '<button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">' +
-    '<i class="ri ri-close-line me-1"></i>Close</button>';
+    '<i class="ri ri-close-line me-1"></i>Close</button>' +
+    pdfLink;
 }
 
 // ── CHANGE REMARK ────────────────────────────────────────────────────────────
@@ -427,7 +425,6 @@ function submitDisapprove() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
 
-  // URLSearchParams required for PATCH — Laravel does not parse FormData on non-POST requests
   var body = new URLSearchParams();
   body.append('remark', 'rejected');
   if (reason) body.append('reason', reason);
@@ -481,8 +478,6 @@ function deleteLeave(id) {
 }
 
 // ── Shared remark sender ─────────────────────────────────────────────────────
-// Uses URLSearchParams (application/x-www-form-urlencoded) because Laravel
-// does not parse multipart/FormData bodies on PATCH requests.
 function lrSendRemark(id, remark, reason) {
   var body = new URLSearchParams();
   body.append('remark', remark);
@@ -541,12 +536,10 @@ function lrShowToast(message, type) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-  // Read CSRF here so the meta tag is guaranteed to exist
   LR_CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
   loadTab('pending', lrState.pending.year);
 
-  // Lazy-load approved and disapproved tabs on first switch
   ['approved', 'disapproved'].forEach(function (tab) {
     var btn = document.getElementById('tab-' + tab);
     if (!btn) return;
