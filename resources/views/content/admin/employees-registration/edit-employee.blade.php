@@ -645,11 +645,11 @@
               <div class="govid-row row g-2 align-items-center mt-2">
                 <div class="col-md-5">
                   <input type="text" name="gov_ids[{{ $i }}][name]" class="form-control"
-                    placeholder="ID Name" value="{{ $gname }}">
+                    placeholder="ID Name" required value="{{ $gname }}">
                 </div>
                 <div class="col-md-5">
                   <input type="text" name="gov_ids[{{ $i }}][id_number]" class="form-control"
-                    placeholder="ID Number" value="{{ $gnumber }}">
+                    placeholder="ID Number" required value="{{ $gnumber }}">
                 </div>
                 <div class="col-md-2">
                   <button type="button" class="btn btn-outline-danger btn-sm w-100"

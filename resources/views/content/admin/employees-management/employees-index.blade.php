@@ -137,9 +137,10 @@
                         <div class="dropdown-divider"></div>
 
                         <form method="POST" action="{{ route('employee-destroy', $encryptedId) }}"
-                          onsubmit="return confirm('Delete this employee?')">
+                          id="delete-form-{{ $emp->id }}">
                           @csrf @method('DELETE')
-                          <button type="submit" class="dropdown-item text-danger">
+                          <button type="button" class="dropdown-item text-danger"
+                            onclick="confirmDelete({{ $emp->id }}, '{{ addslashes($emp->last_name . ', ' . $emp->first_name) }}')">
                             <i class="icon-base ri ri-delete-bin-line me-2"></i>
                             Delete Employee
                           </button>
@@ -168,6 +169,31 @@
 
     </div>
   </div>
+
+  {{-- SweetAlert2 --}}
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    function confirmDelete(id, name) {
+      Swal.fire({
+        title: 'Delete Employee?',
+        html: 'You are about to permanently delete<br><strong>' + name +
+          '</strong>.<br><span style="font-size:.85rem;color:#888;">This action cannot be undone.</span>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ea5455',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="ri ri-delete-bin-line me-1"></i> Yes, Delete',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true,
+        focusCancel: true,
+      }).then(result => {
+        if (result.isConfirmed) {
+          document.getElementById('delete-form-' + id).submit();
+        }
+      });
+    }
+  </script>
 
   {{-- Auto-show toast --}}
   @if (session('success') || session('error'))
