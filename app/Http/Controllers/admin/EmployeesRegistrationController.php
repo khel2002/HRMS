@@ -8,10 +8,12 @@ use App\Models\EmployeeChild;
 use App\Models\EmployeeEducation;
 use App\Models\EmployeeFaceInfo;
 use App\Models\EmployeeGovernmentId;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -20,6 +22,9 @@ use Throwable;
 
 class EmployeesRegistrationController extends Controller
 {
+
+
+  // ── Validation rules ──────────────────────────────────────────────────────
 
   private function employeeRules(int $ignoreId = 0): array
   {
@@ -38,39 +43,37 @@ class EmployeesRegistrationController extends Controller
       'height_cm'       => ['required', 'numeric', 'min:0', 'max:300'],
       'weight_kg'       => ['required', 'numeric', 'min:0', 'max:500'],
       'blood_type'      => ['required', Rule::in(Employee::BLOOD_TYPES)],
+      'position_id'     => ['required', 'integer', 'exists:employee_position,id'],
+      'office_id'       => ['required', 'integer', 'exists:offices,id'],
     ];
   }
 
   private function relatedRules(): array
   {
     return [
-      // Permanent address — free text
-      'permanent.house_number'   => ['nullable', 'string', 'max:50'],
-      'permanent.street'         => ['nullable', 'string', 'max:100'],
-      'permanent.subdivision'    => ['nullable', 'string', 'max:100'],
-      'permanent.zip_code'       => ['nullable', 'string', 'max:20'],
-      // Permanent address — PSGC hierarchy (name stored, code for chaining only)
-      'permanent.region'         => ['nullable', 'string', 'max:150'],
-      'permanent.region_code'    => ['nullable', 'string', 'max:20'],
-      'permanent.province'       => ['nullable', 'string', 'max:150'],
-      'permanent.province_code'  => ['nullable', 'string', 'max:20'],
-      'permanent.city'           => ['nullable', 'string', 'max:150'],
-      'permanent.city_code'      => ['nullable', 'string', 'max:20'],
-      'permanent.barangay'       => ['nullable', 'string', 'max:150'],
+      'permanent.house_number'          => ['nullable', 'string', 'max:50'],
+      'permanent.street'                => ['nullable', 'string', 'max:100'],
+      'permanent.subdivision'           => ['nullable', 'string', 'max:100'],
+      'permanent.zip_code'              => ['nullable', 'string', 'max:20'],
+      'permanent.region'                => ['nullable', 'string', 'max:150'],
+      'permanent.region_code'           => ['nullable', 'string', 'max:20'],
+      'permanent.province'              => ['nullable', 'string', 'max:150'],
+      'permanent.province_code'         => ['nullable', 'string', 'max:20'],
+      'permanent.city'                  => ['nullable', 'string', 'max:150'],
+      'permanent.city_code'             => ['nullable', 'string', 'max:20'],
+      'permanent.barangay'              => ['nullable', 'string', 'max:150'],
 
-      // Current address — free text
-      'current.house_number'     => ['nullable', 'string', 'max:50'],
-      'current.street'           => ['nullable', 'string', 'max:100'],
-      'current.subdivision'      => ['nullable', 'string', 'max:100'],
-      'current.zip_code'         => ['nullable', 'string', 'max:20'],
-      // Current address — PSGC hierarchy
-      'current.region'           => ['nullable', 'string', 'max:150'],
-      'current.region_code'      => ['nullable', 'string', 'max:20'],
-      'current.province'         => ['nullable', 'string', 'max:150'],
-      'current.province_code'    => ['nullable', 'string', 'max:20'],
-      'current.city'             => ['nullable', 'string', 'max:150'],
-      'current.city_code'        => ['nullable', 'string', 'max:20'],
-      'current.barangay'         => ['nullable', 'string', 'max:150'],
+      'current.house_number'            => ['nullable', 'string', 'max:50'],
+      'current.street'                  => ['nullable', 'string', 'max:100'],
+      'current.subdivision'             => ['nullable', 'string', 'max:100'],
+      'current.zip_code'                => ['nullable', 'string', 'max:20'],
+      'current.region'                  => ['nullable', 'string', 'max:150'],
+      'current.region_code'             => ['nullable', 'string', 'max:20'],
+      'current.province'                => ['nullable', 'string', 'max:150'],
+      'current.province_code'           => ['nullable', 'string', 'max:20'],
+      'current.city'                    => ['nullable', 'string', 'max:150'],
+      'current.city_code'               => ['nullable', 'string', 'max:20'],
+      'current.barangay'                => ['nullable', 'string', 'max:150'],
 
       'family.father_name'              => ['required', 'string', 'max:150'],
       'family.mother_name'              => ['required', 'string', 'max:150'],
@@ -82,9 +85,9 @@ class EmployeesRegistrationController extends Controller
       'family.emergency_contact_number' => ['required', 'string', 'max:20'],
       'family.emergency_relationship'   => ['required', 'string', 'max:50'],
 
-      'children'                 => ['nullable', 'array'],
-      'children.*.child_name'    => ['nullable', 'string', 'max:150'],
-      'children.*.date_of_birth' => ['nullable', 'date'],
+      'children'                        => ['nullable', 'array'],
+      'children.*.child_name'           => ['nullable', 'string', 'max:150'],
+      'children.*.date_of_birth'        => ['nullable', 'date'],
 
       'education'                       => ['nullable', 'array'],
       'education.*.level_id'            => ['required', 'integer', 'between:1,5'],
@@ -96,46 +99,79 @@ class EmployeesRegistrationController extends Controller
       'education.*.year_graduated'      => ['nullable', 'integer', 'min:1950', 'max:2099'],
       'education.*.scholarship_honors'  => ['nullable', 'string', 'max:255'],
 
-      'gov_ids'        => ['nullable', 'array'],
-      'gov_ids.*.name' => ['nullable', 'string', 'max:255'],
+      'gov_ids'                         => ['nullable', 'array'],
+      'gov_ids.*.name'                  => ['nullable', 'string', 'max:255'],
+      'gov_ids.*.id_number'             => ['nullable', 'string', 'max:100'],
     ];
   }
 
+  private function employeeFields(): array
+  {
+    return [
+      'employee_number',
+      'first_name',
+      'middle_name',
+      'last_name',
+      'citizenship',
+      'gender',
+      'date_of_birth',
+      'place_of_birth',
+      'mobile_number',
+      'email',
+      'civil_status',
+      'height_cm',
+      'weight_kg',
+      'blood_type',
+      'position_id',
+      'office_id',
+    ];
+  }
+
+  // ── Resolve encrypted ID ──────────────────────────────────────────────────
+
+  private function resolveEmployee(string $encryptedId, bool $withRelations = false): Employee|RedirectResponse
+  {
+    try {
+      $id = (int) Crypt::decryptString($encryptedId);
+    } catch (DecryptException) {
+      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+    }
+
+    try {
+      return $withRelations ? $this->findWithRelations($id) : Employee::findOrFail($id);
+    } catch (ModelNotFoundException) {
+      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+    }
+  }
+
+  private function findWithRelations(int $id): Employee
+  {
+    return Employee::with([
+      'permanentAddress',
+      'currentAddress',
+      'family',
+      'children',
+      'education.level',
+      'governmentIds',
+      'position',
+      'office',
+    ])->findOrFail($id);
+  }
+
+  // ── Persist related models ────────────────────────────────────────────────
+
   private function saveRelated(Employee $employee, Request $request): void
   {
-    // Map PSGC form fields → DB columns (region/codes have no DB column)
-    $permRaw = $request->input('permanent', []);
-    $employee->permanentAddress()->updateOrCreate(
-      ['employee_id' => $employee->id],
-      [
-        'house_number' => $permRaw['house_number'] ?? '',
-        'street'       => $permRaw['street']       ?? '',
-        'subdivision'  => $permRaw['subdivision']  ?? '',
-        'barangay'     => $permRaw['barangay']      ?? '',
-        'city'         => $permRaw['city']          ?? '',
-        'province'     => $permRaw['province']      ?? '',
-        'zip_code'     => $permRaw['zip_code']      ?? '',
-      ]
-    );
+    $this->upsertAddress($employee->permanentAddress(), $employee->id, $request->input('permanent', []));
+    $this->upsertAddress($employee->currentAddress(),  $employee->id, $request->input('current', []));
 
-    $currRaw = $request->input('current', []);
-    $employee->currentAddress()->updateOrCreate(
-      ['employee_id' => $employee->id],
-      [
-        'house_number' => $currRaw['house_number'] ?? '',
-        'street'       => $currRaw['street']       ?? '',
-        'subdivision'  => $currRaw['subdivision']  ?? '',
-        'barangay'     => $currRaw['barangay']      ?? '',
-        'city'         => $currRaw['city']          ?? '',
-        'province'     => $currRaw['province']      ?? '',
-        'zip_code'     => $currRaw['zip_code']      ?? '',
-      ]
-    );
+    // Strip any accidental employee_id key that would conflict with the match clause
+    $familyData = collect($request->input('family', []))->except('employee_id')->all();
 
-    if ($request->filled('family')) {
+    if (! empty($familyData)) {
       $employee->family()->updateOrCreate(
         ['employee_id' => $employee->id],
-        $request->input('family')
+        $familyData
       );
     }
 
@@ -143,21 +179,20 @@ class EmployeesRegistrationController extends Controller
       relation: $employee->children(),
       model: EmployeeChild::class,
       rows: collect($request->input('children', []))
-        ->filter(fn($c) => !empty($c['child_name']))
+        ->filter(fn($c) => ! empty($c['child_name']))
         ->map(fn($c) => [
           'employee_id'   => $employee->id,
           'child_name'    => $c['child_name'],
           'date_of_birth' => $c['date_of_birth'] ?? null,
         ])
-        ->values()
-        ->all()
+        ->values()->all()
     );
 
     $this->syncHasMany(
       relation: $employee->education(),
       model: EmployeeEducation::class,
       rows: collect($request->input('education', []))
-        ->filter(fn($e) => !empty($e['school_name']))
+        ->filter(fn($e) => ! empty($e['school_name']))
         ->map(fn($e) => [
           'employee_id'         => $employee->id,
           'level_id'            => $e['level_id'],
@@ -169,44 +204,49 @@ class EmployeesRegistrationController extends Controller
           'year_graduated'      => $e['year_graduated']      ?? null,
           'scholarship_honors'  => $e['scholarship_honors']  ?? null,
         ])
-        ->values()
-        ->all()
+        ->values()->all()
     );
 
     $this->syncHasMany(
       relation: $employee->governmentIds(),
       model: EmployeeGovernmentId::class,
       rows: collect($request->input('gov_ids', []))
-        ->filter(fn($g) => !empty($g['name']))
+        ->filter(fn($g) => ! empty($g['name']))
         ->map(fn($g) => [
           'employee_id' => $employee->id,
           'name'        => $g['name'],
+          'id_number'   => $g['id_number'] ?? null,
         ])
-        ->values()
-        ->all()
+        ->values()->all()
     );
   }
 
-  /**
-   * Delete all existing rows for a has-many relation then bulk-insert new ones.
-   * Extracted to avoid repeating the delete + conditional insert pattern.
-   */
+  private function upsertAddress(object $relation, int $employeeId, array $raw): void
+  {
+    $relation->updateOrCreate(
+      ['employee_id' => $employeeId],
+      [
+        'house_number' => $raw['house_number'] ?? '',
+        'street'       => $raw['street']       ?? '',
+        'subdivision'  => $raw['subdivision']  ?? '',
+        'barangay'     => $raw['barangay']     ?? '',
+        'city'         => $raw['city']         ?? '',
+        'province'     => $raw['province']     ?? '',
+        'zip_code'     => $raw['zip_code']     ?? '',
+      ]
+    );
+  }
+
   private function syncHasMany(object $relation, string $model, array $rows): void
   {
     $relation->delete();
 
-    if (!empty($rows)) {
+    if (! empty($rows)) {
       $model::insert($rows);
     }
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  SEARCH  — API endpoint for the leave application form
-  //  GET /api/employees/search?q=...
-  //  Returns up to 15 active employees matching the query
-  //  (employee number, first, middle, or last name).
-  //  Each result includes position_name via the position relation.
-  // ──────────────────────────────────────────────────────────────
+  // ── SEARCH ────────────────────────────────────────────────────────────────
 
   public function search(Request $request): JsonResponse
   {
@@ -218,12 +258,11 @@ class EmployeesRegistrationController extends Controller
 
     $employees = Employee::with(['position', 'office'])
       ->whereNull('deleted_at')
-      // search all non-deleted employees regardless of status
       ->where(function ($query) use ($q) {
         $query->where('employee_number', 'like', "%{$q}%")
-          ->orWhere('first_name',    'like', "%{$q}%")
-          ->orWhere('last_name',     'like', "%{$q}%")
-          ->orWhere('middle_name',   'like', "%{$q}%")
+          ->orWhere('first_name',  'like', "%{$q}%")
+          ->orWhere('last_name',   'like', "%{$q}%")
+          ->orWhere('middle_name', 'like', "%{$q}%")
           ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$q}%"]);
       })
       ->orderBy('last_name')
@@ -245,266 +284,176 @@ class EmployeesRegistrationController extends Controller
     return response()->json($employees);
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  INDEX
-  // ──────────────────────────────────────────────────────────────
+  // ── INDEX / CREATE ────────────────────────────────────────────────────────
 
   public function index()
   {
     return view('content.admin.employees-registration.employees-registration');
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  CREATE
-  // ──────────────────────────────────────────────────────────────
-
   public function create()
   {
     return view('content.admin.employees-registration.employees-registration');
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  STORE
-  // ──────────────────────────────────────────────────────────────
+  // ── STORE ─────────────────────────────────────────────────────────────────
 
   public function store(Request $request): RedirectResponse
   {
-    // ── STEP 1: Log everything that arrived in the POST ───────────
-    Log::info('STORE called', [
-      'method'       => $request->method(),
-      'all_keys'     => array_keys($request->all()),
-      'employee_num' => $request->input('employee_number'),
-      'civil_status' => $request->input('civil_status'),
-      'gender'       => $request->input('gender'),
-      'email'        => $request->input('email'),
-      'perm_keys'    => array_keys($request->input('permanent', [])),
-      'curr_keys'    => array_keys($request->input('current', [])),
-      'family_keys'  => array_keys($request->input('family', [])),
-    ]);
-
-    // ── STEP 2: Try validation, log any failures ──────────────────
-    $rules = array_merge($this->employeeRules(), $this->relatedRules());
-
-    $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules);
+    $validator = Validator::make(
+      $request->all(),
+      array_merge($this->employeeRules(), $this->relatedRules())
+    );
 
     if ($validator->fails()) {
-      Log::warning('STORE validation failed', ['errors' => $validator->errors()->toArray()]);
-      return redirect()
-        ->back()
-        ->withErrors($validator)
-        ->withInput()
-        ->with('validation_failed', true);
+      Log::warning('Employee store validation failed', ['errors' => $validator->errors()->toArray()]);
+
+      return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    // ── STEP 3: Try DB insert ─────────────────────────────────────
     try {
       DB::transaction(function () use ($request) {
         $employee = Employee::create(array_merge(
-          $request->only([
-            'employee_number',
-            'first_name',
-            'middle_name',
-            'last_name',
-            'citizenship',
-            'gender',
-            'date_of_birth',
-            'place_of_birth',
-            'mobile_number',
-            'email',
-            'civil_status',
-            'height_cm',
-            'weight_kg',
-            'blood_type',
-          ]),
-          ['status' => 'inactive']   // always inactive until face enrollment
+          $request->only($this->employeeFields()),
+          ['status' => 'inactive']
         ));
 
-        Log::info('STORE employee created', ['id' => $employee->id]);
-
         $this->saveRelated($employee, $request);
-
-        Log::info('STORE related saved', ['id' => $employee->id]);
       });
 
-      Log::info('STORE SUCCESS');
-
-      return redirect()
-        ->route('employees-index')
-        ->with('success', 'Employee successfully registered.');
+      return redirect()->route('employees-index')->with('success', 'Employee successfully registered.');
     } catch (Throwable $e) {
-      Log::error('STORE DB failed', [
+      Log::error('Employee store failed', [
         'error' => $e->getMessage(),
         'file'  => $e->getFile(),
         'line'  => $e->getLine(),
       ]);
 
-      return redirect()
-        ->back()
-        ->withInput()
-        ->with('error', 'DB error: ' . $e->getMessage());
+      return redirect()->back()->withInput()->with('error', 'DB error: ' . $e->getMessage());
     }
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  SHOW
-  // ──────────────────────────────────────────────────────────────
+  // ── SHOW ──────────────────────────────────────────────────────────────────
 
-  public function show(int $id): mixed
+  public function show(string $encryptedId): mixed
   {
-    try {
-      $employee = $this->findWithRelations($id);
+    $employee = $this->resolveEmployee($encryptedId, withRelations: true);
 
-      return view('content.admin.employees-registration.view-employee', compact('employee'));
-    } catch (ModelNotFoundException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+    if ($employee instanceof RedirectResponse) {
+      return $employee;
     }
+
+    return view('content.admin.employees-registration.view-employee', compact('employee'));
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  EDIT
-  // ──────────────────────────────────────────────────────────────
+  // ── EDIT ──────────────────────────────────────────────────────────────────
 
-  public function edit(int $id): mixed
+  public function edit(string $encryptedId): mixed
   {
-    try {
-      $employee = $this->findWithRelations($id);
+    $employee = $this->resolveEmployee($encryptedId, withRelations: true);
 
-      return view('content.admin.employees-registration.edit-employee', compact('employee'));
-    } catch (ModelNotFoundException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+    if ($employee instanceof RedirectResponse) {
+      return $employee;
     }
+
+    return view('content.admin.employees-registration.edit-employee', compact('employee'));
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  UPDATE
-  // ──────────────────────────────────────────────────────────────
+  // ── UPDATE ────────────────────────────────────────────────────────────────
 
-  public function update(Request $request, int $id): RedirectResponse
+  public function update(Request $request, string $encryptedId): RedirectResponse
   {
-    try {
-      $employee = Employee::findOrFail($id);
-    } catch (ModelNotFoundException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+    $employee = $this->resolveEmployee($encryptedId);
+
+    if ($employee instanceof RedirectResponse) {
+      return $employee;
     }
 
-    $request->validate(
+    $validator = Validator::make(
+      $request->all(),
       array_merge($this->employeeRules($employee->id), $this->relatedRules())
     );
 
+    if ($validator->fails()) {
+      Log::warning('Employee update validation failed', [
+        'id'     => $employee->id,
+        'errors' => $validator->errors()->toArray(),
+      ]);
+
+      return redirect()->back()->withErrors($validator)->withInput();
+    }
+
     try {
       DB::transaction(function () use ($request, $employee) {
-        $employee->update($request->only([
-          'employee_number',
-          'first_name',
-          'middle_name',
-          'last_name',
-          'citizenship',
-          'gender',
-          'date_of_birth',
-          'place_of_birth',
-          'mobile_number',
-          'email',
-          'civil_status',
-          'height_cm',
-          'weight_kg',
-          'blood_type',
-        ]));
-
+        $employee->update($request->only($this->employeeFields()));
         $this->saveRelated($employee, $request);
       });
 
       return redirect()
-        ->route('employee-show', $id)
+        ->route('employee-show', Crypt::encryptString($employee->id))
         ->with('success', 'Employee record updated successfully.');
     } catch (Throwable $e) {
-      Log::error('Employee update failed', ['id' => $id, 'error' => $e->getMessage()]);
+      Log::error('Employee update failed', [
+        'id'    => $employee->id,
+        'error' => $e->getMessage(),
+        'file'  => $e->getFile(),
+        'line'  => $e->getLine(),
+        'trace' => $e->getTraceAsString(),
+      ]);
 
-      return redirect()
-        ->back()
-        ->withInput()
-        ->with('error', 'Something went wrong while updating the employee. Please try again.');
+      // !! TEMPORARY — exposes the real exception so you can diagnose it.
+      // Once fixed, replace the with('error', ...) value with a generic message.
+      return redirect()->back()->withInput()
+        ->with('error', '[DEBUG] ' . $e->getMessage() . ' — ' . basename($e->getFile()) . ':' . $e->getLine());
     }
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  DESTROY
-  // ──────────────────────────────────────────────────────────────
+  // ── DESTROY ───────────────────────────────────────────────────────────────
 
-  public function destroy(int $id): RedirectResponse
+  public function destroy(string $encryptedId): RedirectResponse
   {
+    $employee = $this->resolveEmployee($encryptedId);
+
+    if ($employee instanceof RedirectResponse) {
+      return $employee;
+    }
+
     try {
-      Employee::findOrFail($id)->delete();
+      $employee->delete();
 
       return redirect()->route('employees-index')->with('success', 'Employee has been deleted.');
-    } catch (ModelNotFoundException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
     } catch (Throwable $e) {
-      Log::error('Employee delete failed', ['id' => $id, 'error' => $e->getMessage()]);
+      Log::error('Employee delete failed', ['id' => $employee->id, 'error' => $e->getMessage()]);
 
       return redirect()->route('employees-index')->with('error', 'Something went wrong while deleting the employee.');
     }
   }
 
-  // ──────────────────────────────────────────────────────────────
-  //  HELPERS
-  // ──────────────────────────────────────────────────────────────
-
-  private function findWithRelations(int $id): Employee
-  {
-    return Employee::with([
-      'permanentAddress',
-      'currentAddress',
-      'family',
-      'children',
-      'education.level',
-      'governmentIds',
-    ])->findOrFail($id);
-  }
-
+  // ── FACIAL RECOGNITION ────────────────────────────────────────────────────
 
   public function facialRecognitionRegistration()
   {
-
-    $employeesWithoutFace = Employee::where('status', 'inactive')
-      ->get();
+    $employeesWithoutFace = Employee::where('status', 'inactive')->get();
 
     return view('content.admin.employees-registration.facial-recognitation', compact('employeesWithoutFace'));
   }
 
   public function facialRecognitionSave(Request $request)
   {
-
     try {
-
       $request->validate([
         'employee_id' => 'required|exists:employees,id',
-        'descriptor'  => 'required|array|min:128'
+        'descriptor'  => 'required|array|min:128',
       ]);
-
-
-      // return response()->json([
-      //     'status' => 'success',
-      //     'message' => $request->all()
-      // ]);
-
 
       EmployeeFaceInfo::updateOrCreate(
         ['employee_id' => $request->employee_id],
-        [
-          'descriptor' => json_encode($request->descriptor),
-        ]
+        ['descriptor'  => json_encode($request->descriptor)]
       );
 
-      return response()->json([
-        'status' => 'success',
-        'message' => 'Facial data enrolled successfully!'
-      ]);
+      return response()->json(['status' => 'success', 'message' => 'Facial data enrolled successfully!']);
     } catch (\Exception $e) {
-      // Log::error("Face Enrollment Error: " . $e->getMessage());
-      return response()->json([
-        'status' => 'error',
-        'message' => $e->getMessage()
-      ], 500);
+      return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
   }
 }

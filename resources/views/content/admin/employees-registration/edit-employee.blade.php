@@ -25,7 +25,7 @@
 
   {{-- ══════════════════════════════════════════════════════ HEADER --}}
   <div class="d-flex align-items-center gap-3 mb-4">
-    <a href="{{ route('employee-show', $employee->id) }}" class="btn btn-sm btn-outline-secondary">
+    <a href="{{ route('employee-show', Crypt::encryptString($employee->id)) }}" class="btn btn-sm btn-outline-secondary">
       <i class="ri ri-arrow-left-line me-1"></i> Back
     </a>
     <div>
@@ -36,7 +36,7 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ route('employee-update', $employee->id) }}">
+  <form method="POST" action="{{ route('employee-update', Crypt::encryptString($employee->id)) }}">
     @csrf @method('PUT')
 
     {{-- ══════════════════════════════════════════════════════
@@ -53,6 +53,38 @@
               class="form-control @error('employee_number') is-invalid @enderror"
               value="{{ old('employee_number', $employee->employee_number) }}" required>
             @error('employee_number')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Position / Designation <span class="text-danger">*</span></label>
+            <select name="position_id" class="form-select @error('position_id') is-invalid @enderror" required>
+              <option value=""></option>
+              @foreach (\App\Models\EmployeePosition::orderBy('position_name')->get() as $position)
+                <option value="{{ $position->id }}"
+                  {{ old('position_id', $employee->position_id) == $position->id ? 'selected' : '' }}>
+                  {{ $position->position_name }}
+                </option>
+              @endforeach
+            </select>
+            @error('position_id')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Office / Unit <span class="text-danger">*</span></label>
+            <select name="office_id" class="form-select @error('office_id') is-invalid @enderror" required>
+              <option value=""></option>
+              @foreach (\App\Models\Office::orderBy('office_name')->get() as $office)
+                <option value="{{ $office->id }}"
+                  {{ old('office_id', $employee->office_id) == $office->id ? 'selected' : '' }}>
+                  {{ $office->office_name }}
+                </option>
+              @endforeach
+            </select>
+            @error('office_id')
               <div class="invalid-feedback">{{ $message }}</div>
             @enderror
           </div>
@@ -605,12 +637,19 @@
         <p class="text-muted mb-3" style="font-size:.82rem;">SSS, PhilHealth, Pag-IBIG, TIN, etc.</p>
         <div id="editGovIdsContainer">
           @foreach (old('gov_ids', $employee->governmentIds->toArray()) as $i => $gid)
-            @php $gname = is_array($gid) ? ($gid['name'] ?? '') : $gid['name']; @endphp
+            @php
+              $gname = is_array($gid) ? $gid['name'] ?? '' : $gid['name'] ?? '';
+              $gnumber = is_array($gid) ? $gid['id_number'] ?? '' : $gid['id_number'] ?? '';
+            @endphp
             @if ($gname)
               <div class="govid-row row g-2 align-items-center mt-2">
-                <div class="col-md-10">
+                <div class="col-md-5">
                   <input type="text" name="gov_ids[{{ $i }}][name]" class="form-control"
-                    value="{{ $gname }}">
+                    placeholder="ID Name" value="{{ $gname }}">
+                </div>
+                <div class="col-md-5">
+                  <input type="text" name="gov_ids[{{ $i }}][id_number]" class="form-control"
+                    placeholder="ID Number" value="{{ $gnumber }}">
                 </div>
                 <div class="col-md-2">
                   <button type="button" class="btn btn-outline-danger btn-sm w-100"
@@ -630,7 +669,7 @@
 
     {{-- ══════════════════════════════════════════════════════ FOOTER --}}
     <div class="d-flex justify-content-between align-items-center pb-2">
-      <a href="{{ route('employee-show', $employee->id) }}" class="btn btn-outline-secondary">
+      <a href="{{ route('employee-show', Crypt::encryptString($employee->id)) }}" class="btn btn-outline-secondary">
         <i class="ri ri-arrow-left-line me-1"></i> Cancel
       </a>
       <button type="submit" class="btn btn-success px-4">
@@ -807,9 +846,13 @@
         document.getElementById('editAddGovIdBtn')?.addEventListener('click', () => {
           document.getElementById('editGovIdsContainer').insertAdjacentHTML('beforeend', `
         <div class="govid-row row g-2 align-items-center mt-2">
-          <div class="col-md-10">
+          <div class="col-md-5">
             <input type="text" name="gov_ids[${govIdIdx}][name]" class="form-control"
-              placeholder="e.g. SSS No. 12-3456789-0">
+              placeholder="ID Name (e.g. SSS)">
+          </div>
+          <div class="col-md-5">
+            <input type="text" name="gov_ids[${govIdIdx}][id_number]" class="form-control"
+              placeholder="ID Number">
           </div>
           <div class="col-md-2">
             <button type="button" class="btn btn-outline-danger btn-sm w-100"

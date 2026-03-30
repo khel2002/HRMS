@@ -22,19 +22,25 @@
       "slug": "employee-registration"
     },
     {
-      "url": "/admin/user-accounts",
+      "url": "admin/employees/facial-recognition/registration",
+      "name": "Employees Facial Recognition",
+      "icon": "menu-icon icon-base ri ri-time-line",
+      "slug": "employee-facial-registration"
+    },
+    {
+      "url": "/admin/account-management",
       "name": "User Accounts",
       "icon": "menu-icon icon-base ri ri-account-circle-2-line",
-      "slug": "user-account"
+      "slug": "account-management"
     },
     {
       "menuHeader": "Attendance & Request"
     },
     {
-      "url": "/admin/dtr",
+      "url": "admin/employees/DTR",
       "name": "DTR",
       "icon": "menu-icon icon-base ri ri-time-line",
-      "slug": "dtr"
+      "slug": "DTR"
     },
     {
       "url": "/admin/itinerary-slip",

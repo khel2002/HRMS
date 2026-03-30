@@ -75,6 +75,9 @@
           </thead>
           <tbody>
             @forelse ($employees as $emp)
+              @php
+                $encryptedId = Crypt::encryptString($emp->id);
+              @endphp
               <tr>
                 <td class="align-middle">{{ $emp->employee_number }}</td>
                 <td class="align-middle">
@@ -99,24 +102,28 @@
                 </td>
                 <td class="text-center align-middle">
                   <div class="d-flex justify-content-center gap-1">
-                    <a href="{{ route('employee-show', $emp->id) }}"
+
+                    <a href="{{ route('employee-show', $encryptedId) }}"
                       class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="View">
                       <i class="icon-base ri ri-eye-line"></i>
                     </a>
-                    <a href="{{ route('employee-edit', $emp->id) }}"
+
+                    <a href="{{ route('employee-edit', $encryptedId) }}"
                       class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="Edit">
                       <i class="icon-base ri ri-edit-line"></i>
                     </a>
+
                     <div class="dropdown">
                       <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill" type="button"
                         data-bs-toggle="dropdown" aria-expanded="false" title="More">
                         <i class="icon-base ri ri-more-2-line"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
+
                         {{-- Status change --}}
                         @foreach (['active', 'inactive', 'suspended'] as $s)
                           @if (($emp->status ?? 'active') !== $s)
-                            <form method="POST" action="{{ route('employee-status', $emp->id) }}">
+                            <form method="POST" action="{{ route('employee-status', $encryptedId) }}">
                               @csrf @method('PATCH')
                               <input type="hidden" name="status" value="{{ $s }}">
                               <button type="submit" class="dropdown-item">
@@ -126,8 +133,10 @@
                             </form>
                           @endif
                         @endforeach
+
                         <div class="dropdown-divider"></div>
-                        <form method="POST" action="{{ route('employee-destroy', $emp->id) }}"
+
+                        <form method="POST" action="{{ route('employee-destroy', $encryptedId) }}"
                           onsubmit="return confirm('Delete this employee?')">
                           @csrf @method('DELETE')
                           <button type="submit" class="dropdown-item text-danger">
@@ -135,6 +144,7 @@
                             Delete Employee
                           </button>
                         </form>
+
                       </div>
                     </div>
                   </div>

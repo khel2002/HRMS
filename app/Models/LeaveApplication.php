@@ -17,20 +17,22 @@ class LeaveApplication extends Model
     'start_date',
     'end_date',
     'total_days',
-    'manager_status',   // pending | recommended | not_recommended
+    'duration_type',     // full_day | half_day_am | half_day_pm
+    'manager_status',    // pending | recommended | not_recommended
     'reason',
-    'remarks',          // pending | approved | rejected
+    'remarks',           // pending | approved | rejected
   ];
 
   protected $casts = [
     'date_filed' => 'datetime',
     'start_date' => 'date',
     'end_date'   => 'date',
-    'total_days' => 'integer',
+    'total_days' => 'decimal:2',
   ];
 
   // ── Constants ─────────────────────────────────────────────────────────────
 
+  const DURATION_TYPES   = ['full_day', 'half_day_am', 'half_day_pm'];
   const MANAGER_STATUSES = ['pending', 'recommended', 'not_recommended'];
   const REMARKS          = ['pending', 'approved', 'rejected'];
 
@@ -53,14 +55,9 @@ class LeaveApplication extends Model
     return $query->where('employee_id', $employeeId);
   }
 
-  /**
-   * Filter by HR verdict (remarks column).
-   * The UI uses 'disapproved' but the DB stores 'rejected' — mapped here.
-   */
   public function scopeByStatus($query, string $status): mixed
   {
     $dbValue = $status === 'disapproved' ? 'rejected' : $status;
-
     return $query->where('remarks', $dbValue);
   }
 
@@ -69,14 +66,8 @@ class LeaveApplication extends Model
     return $query->whereYear('date_filed', $year);
   }
 
-    // ── Accessors ─────────────────────────────────────────────────────────────
+  // ── Accessors ─────────────────────────────────────────────────────────────
 
-  /**
-   * Normalise DB `remarks` to UI vocabulary.
-   *   DB 'rejected'  → UI 'disapproved'
-   *   DB 'pending'   → UI 'pending'
-   *   DB 'approved'  → UI 'approved'
-   */
   public function getStatusAttribute(): string
   {
     return match ($this->remarks) {
@@ -85,9 +76,15 @@ class LeaveApplication extends Model
     };
   }
 
-  /**
-   * Build the approval timeline for the view modal.
-   */
+  public function getDurationLabelAttribute(): string
+  {
+    return match ($this->duration_type) {
+      'half_day_am' => 'Half Day (AM)',
+      'half_day_pm' => 'Half Day (PM)',
+      default       => 'Full Day',
+    };
+  }
+
   public function getTimelineAttribute(): array
   {
     $steps = [];
