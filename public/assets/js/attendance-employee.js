@@ -6,6 +6,19 @@ $(document).ready(function() {
     const statusMessage = $('#statusBadge');
 
     let employeeMap = {};
+
+
+
+    async function getUserLogs(){
+        const response = await fetch('/employees/user-logs');
+        const userLogs = await response.text();
+
+        const $logList = $('#logResultList');
+
+        $logList.html(userLogs);
+    }
+
+    getUserLogs();
     
 
     async function setup() {
@@ -148,44 +161,95 @@ $(document).ready(function() {
 
 
     function captureImageAndLog(employeeId) {
-        // Create a hidden canvas to grab the frame
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = videoElement.videoWidth;
         tempCanvas.height = videoElement.videoHeight;
+
         const ctx = tempCanvas.getContext('2d');
         ctx.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
-        
+
         const capturedBase64 = tempCanvas.toDataURL('image/jpeg');
 
-        
         $('#startScanBtn').prop('disabled', true).text("Processing...");
- 
+
         $.ajax({
-            url: '/employees/attendance/log-book', 
+            url: '/employees/attendance/log-book',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
                 employee_id: employeeId,
                 captured_image: capturedBase64
             }),
-            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
             success: function(response) {
-                $('#logResult').fadeIn();
+                const alertBox = $('#resultAlert');
+                const badge = $('#resultBadge');
+                const icon = $('#resultIcon');
 
                 $('#resultMsg').text(response.message);
 
-                $('#logResult').html(response.html);
+            
+                alertBox.removeClass('d-none alert-success alert-danger alert-warning')
+                        .addClass('d-flex');
 
-          
-               $('.alert').removeClass('d-none').addClass('d-flex');
+                badge.removeClass('bg-success bg-danger bg-warning');
+                icon.removeClass('bx-check bx-x bx-error bx-time');
+
+             
+                if (response.type === 'warning') {
+                    alertBox.addClass('alert-warning');
+                    badge.addClass('bg-warning');
+                    icon.addClass('bx-error'); 
+                } 
+                else if (response.success === true) {
+                    alertBox.addClass('alert-success');
+                    badge.addClass('bg-success');
+                    icon.addClass('bx-check'); 
+                } 
+                else {
+                    alertBox.addClass('alert-danger');
+                    badge.addClass('bg-danger');
+                    icon.addClass('bx-x'); 
+                }
+
                 $('#employeeIdInput').val('');
-               setTimeout(() => {  $('.alert').removeClass('d-flex').addClass('d-none'); }, 3000);
+                getUserLogs();
+
+           
+                // setTimeout(() => {
+                //     alertBox.removeClass('d-flex').addClass('d-none');
+                // }, 3000);
             },
             error: function(xhr, status, error) {
-                $('.alert').removeClass('d-none').addClass('d-flex');
-                $('#resultMsg').text(error.message);
+                let msg = 'An error occurred while saving the log.';
 
-                //alert("An error occurred while saving the log.");
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    msg = xhr.responseText;
+                } else if (error) {
+                    msg = error;
+                }
+
+                $('#resultMsg').text(msg);
+                $('.alert')
+                    .removeClass('alert-success d-none')
+                    .addClass('alert-danger d-flex');
+
+                const $logList = $('#logResultList');
+                $('#logEmptyState').remove();
+
+                $logList.prepend(`
+                    <div class="alert alert-danger mb-2 py-2 px-3">
+                        ${msg}
+                    </div>
+                `);
+
+                setTimeout(() => {
+                    $('.alert').removeClass('d-flex').addClass('d-none');
+                }, 3000);
             },
             complete: function() {
                 $('#startScanBtn').prop('disabled', false).text("Log Book");
@@ -197,40 +261,7 @@ $(document).ready(function() {
     setup();
 
    
-    // $btn.on('click', function() {
-       
-    //     if (!window.currentDescriptor) return;
-
-    //     const employeeId = $('#employeeSelect').val();
-
-    //     // UI Feedback: Change button text and disable it
-    //     const $this = $(this);
-    //     $this.text("Saving to Database...").prop('disabled', true);
-
-    //     $.ajax({
-    //         url:`/admin/employees/facial-recognition/save`,
-    //         method: 'POST',
-    //         contentType: 'application/json',
-    //         data: JSON.stringify({
-             
-    //             descriptor: Array.from(window.currentDescriptor),
-    //             employee_id: employeeId
-
-    //         }),
-    //         headers: {
-    //             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-    //         },
-    //         success: function(response) {
-    //             alert('Success! Face data enrolled.');
-    //             //  window.location.reload();
-    //         },
-    //         error: function(xhr, status, error) {
-    //             console.error("AJAX Error:", error);
-             
-    //             $this.text("Enroll Face").prop('disabled', false);
-    //         }
-    //     });
-    // });
+    
 
     $('#employeeIdInput').on('keyup', async function() {
         const query = $(this).val().toLowerCase();

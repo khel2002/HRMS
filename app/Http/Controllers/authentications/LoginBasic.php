@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\LogImage;
 use App\Models\UserLogs;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Storage;
@@ -39,108 +40,154 @@ class LoginBasic extends Controller
 
         return response()->json($formattedData);
   }
- public function storeLog(Request $request)
- {
-   try{
+public function storeLog(Request $request)
+{
+    try {
+        DB::beginTransaction();
 
-    DB::beginTransaction();
-   
-    $employeeNumber = $request->employee_id; 
-    $capturedImage = $request->captured_image; 
-    $today = now()->toDateString();
-    $currentTime = now()->toTimeString();
-    $imagePath = $this->saveFaceImage($capturedImage, $employeeNumber);
+        $employeeNumber = $request->employee_id;
+        $capturedImage  = $request->captured_image;
+        $today          = now()->toDateString();
+        $currentTime    = now()->toTimeString();
+        $imagePath      = $this->saveFaceImage($capturedImage, $employeeNumber);
+
+        $log = DB::table('user_logs')
+            ->where('employee_number', $employeeNumber)
+            ->where('log_date', $today)
+            ->first();
+
+        $msg = null;
+        $targetLogId = null;
 
 
-    $log = DB::table('user_logs')
-        ->where('employee_number', $employeeNumber)
-        ->where('log_date', $today)
-        ->first();
+        $isAfternoon = now()->isAfter('12:00:00');
 
+        if (!$log) {
+            
+            $logType = $isAfternoon ? 'afternoon_time_in' : 'morning_time_in';
 
-    $message = null;
-    
-    if (!$log) {
+            $targetLogId = DB::table('user_logs')->insertGetId([
+                'employee_number' => $employeeNumber,
+                'log_date'        => $today,
+                $logType          => $currentTime,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
 
-        $logType = now()->isAfter('12:00:00') ? 'afternoon_time_in' : 'morning_time_in';
-                    
-        $newLogId = DB::table('user_logs')->insertGetId([
-            'employee_number' => $employeeNumber,
-            'log_date'        => $today,
-            $logType          => $currentTime,
-            'created_at'      => now(),
-        ]);
+            DB::table('log_images')->insert([
+                'log_id'      => $targetLogId,
+                'image_path'  => $imagePath,
+                'log_type'    => $logType,
+            ]);
 
-        DB::table('log_images')->insert([
-            'log_id' => $newLogId,
-            'image_path' => $imagePath,
-            'log_type' => $logType,
-            'captured_at' => now(),
-        ]);
-
-        $msg = (now()->isAfter('12:00:00')) ? 'Afternoon Time-In recorded' : 'Morning Time-In recorded';
-    }else{
-
-        if (is_null($log->morning_time_out) && now()->isBefore('12:00:00')) {
-            $updateData['morning_time_out'] = $currentTime;
-            $imageLog = [
-                'log_id' => $log->id,
-                'image_path' => $imagePath,
-                'log_type' => 'morning_time_out',
-                'captured_at' => now(),
-            ];
-            $msg = "Morning Time-Out recorded";
-        } elseif (is_null($log->afternoon_time_in)) {
-            $updateData['afternoon_time_in'] = $currentTime;
-            $imageLog = [
-                'log_id' => $log->id,
-                'image_path' => $imagePath,
-                'log_type' => 'afternoon_time_in',
-                'captured_at' => now(),
-            ];
-            $msg = "Afternoon Time-In recorded";
-        } elseif (is_null($log->afternoon_time_out)) {
-            $updateData['afternoon_time_out'] = $currentTime;
-            $imageLog = [
-                'log_id' => $log->id,
-                'image_path' => $imagePath,
-                'log_type' => 'afternoon_time_out',
-                'captured_at' => now(),
-            ];
-            $msg = "Afternoon Time-Out recorded";
+            $msg = now()->isAfter('12:00:00')
+                ? 'Afternoon Time-In recorded'
+                : 'Morning Time-In recorded';
         } else {
+            $updateData = [
+                'updated_at' => now(),
+            ];
 
-           
-            return response()->json(['message' => 'All your logs for today are already filled'], 200);
+            if (is_null($log->morning_time_out) && !$isAfternoon ) {
+                $updateData['morning_time_out'] = $currentTime;
+
+                if($this->isvalidNotLog($log->morning_time_in,$currentTime)){
+                    return response()->json([
+                        'success' => false,
+                        'type' => 'warning',
+                        'message' => 'Please wait for 10 minutes to logout.',
+                    ], 200);
+                }
+
+                $imageLog = [
+                    'log_id'      => $log->id,
+                    'image_path'  => $imagePath,
+                    'log_type'    => 'morning_time_out',
+                    'captured_at' => now(),
+                ];
+
+                $msg = 'Morning Time-Out recorded';
+            } elseif (is_null($log->afternoon_time_in) && $isAfternoon) {
+                $updateData['afternoon_time_in'] = $currentTime;
+
+
+               if($this->isvalidNotLog($log->morning_time_out, $currentTime)) {
+                    return response()->json([
+                        'success' => false,
+                        'type' => 'warning',
+                        'message' => 'Please wait for 10 minutes to log in.',
+                    ], 200);
+               }
+
+
+                $imageLog = [
+                    'log_id'      => $log->id,
+                    'image_path'  => $imagePath,
+                    'log_type'    => 'afternoon_time_in',
+                    'captured_at' => now(),
+                ];
+
+                $msg = 'Afternoon Time-In recorded';
+            } elseif (is_null($log->afternoon_time_out) && $isAfternoon) {
+                $updateData['afternoon_time_out'] = $currentTime;
+
+
+                if($this->isvalidNotLog($log->afternoon_time_in,$currentTime)){
+                    return response()->json([
+                        'success' => false,
+                        'type' => 'warning',
+                        'message' => 'Please wait for 10 minutes to log out.',
+                    ], 200);
+                }
+
+                $imageLog = [
+                    'log_id'      => $log->id,
+                    'image_path'  => $imagePath,
+                    'log_type'    => 'afternoon_time_out',
+                    'captured_at' => now(),
+                ];
+
+                $msg = 'Afternoon Time-Out recorded';
+            } else {
+                DB::commit();
+
+                if(is_null($log->afternoon_time_in) && !is_null($log->morning_time_out)){
+                    $msg = 'All your logs for the afternoon are already filled.';
+                }else{
+                    $msg = 'All your logs for today are already filled.';
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'type' => 'warning',
+                    'message' => $msg,
+                ], 200);
+            }
+
+        
+            DB::table('user_logs')->where('id', $log->id)->update($updateData);
+            DB::table('log_images')->insert($imageLog);
+
+            $targetLogId = $log->id;
         }
 
+        DB::commit();
 
-        DB::table('user_logs')->where('id',$log->id)->update($updateData);
-        DB::table('log_images')->insert($imageLog);
-    }
-
-    DB::commit();
-
-   $userLogs = LogImage::with(['userLogs.employee'])->where('log_id',$newLogId)->first();
-
-    $html = view('_partials._attendance-log-item', compact('userLogs'))->render();
-
-   return response()->json([
+    
+        return response()->json([
             'success' => true,
             'message' => $msg,
-            'html' => $html
         ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
 
-   }catch(\Exception $e){   
-    DB::rollback();
- 
-    return $e;
-     return response()->json([
-            'status'  => 'error',
-            'message' => 'Failed to save attendance. Please try again.' . $e
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to save attendance. Please try again.',
+            'error'   => $e->getMessage(),
         ], 500);
-   }
-  }
+    }
+}
   private function saveFaceImage($base64Image, $employeeNumber)
   {
     
@@ -158,5 +205,24 @@ class LoginBasic extends Controller
     }
     
     return null;
+  }
+
+  public function isvalidNotLog($timeIn,$timeNow){
+    $timeIn = Carbon::parse($timeIn);
+    $timeNow = Carbon::parse($timeNow);
+
+   
+    $diffMinutes = $timeIn->diffInMinutes($timeNow);
+    
+
+    return $diffMinutes < 10; 
+  }
+  public function userLogs(){
+
+ 
+
+
+    $userLogs = LogImage::orderBy('captured_at','desc')->get();     
+    return view('_partials._attendance-log-item', compact('userLogs'))->render();
   }
 }
