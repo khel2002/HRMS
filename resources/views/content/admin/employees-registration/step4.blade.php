@@ -127,21 +127,23 @@
   @foreach ($oldGovIds as $i => $gid)
     @if (!empty($gid['name']))
       <div class="govid-row row g-2 align-items-center mt-2">
+
         <div class="col-md-5">
-          <input type="text" name="gov_ids[{{ $i }}][name]" class="form-control" placeholder="ID Name "
-            value="{{ $gid['name'] }}">
+          <input type="text" name="gov_ids[{{ $i }}][name]" class="form-control" placeholder="ID Name"
+            required value="{{ $gid['name'] }}">
         </div>
         <div class="col-md-5">
           <input type="text" name="gov_ids[{{ $i }}][id_number]" class="form-control"
-            placeholder="ID Number" value="{{ $gid['id_number'] ?? '' }}">
+            placeholder="ID Number" required value="{{ $gid['id_number'] ?? '' }}">
         </div>
         <div class="col-md-2">
           <button type="button" class="btn btn-outline-danger btn-sm w-100"
             onclick="this.closest('.govid-row').remove()">
-            <i class="ri ri-delete-bin-line"></i> Remove
+            <i class="ri ri-delete-bin-line"></i>
           </button>
         </div>
       </div>
+
     @endif
   @endforeach
 </div>

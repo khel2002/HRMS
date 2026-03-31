@@ -3,11 +3,19 @@ use Illuminate\Support\Facades\Route;
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu">
 
+  <style>
+    .logo {
+      width: 40px;
+      /* adjust this */
+      height: auto;
+      /* keeps aspect ratio */
+    }
+  </style>
     <!-- ! Hide app brand if navbar-full -->
     <div class="app-brand demo">
-        <a href="{{url('/')}}" class="app-brand-link">
-            <span class="app-brand-logo demo me-1">@include('_partials.macros')</span>
-            <span class="app-brand-text demo menu-text fw-semibold ms-2">{{config('variables.templateName')}}</span>
+    <a href="{{ url('/') }}" class="app-brand-link">
+      <span class="app-brand-logo demo me-1"><img src="{{ asset('assets/img/logo/HRIS-LOGO.png') }}" class="logo"></span>
+      <span class="app-brand-text demo menu-text fw-semibold ms-2">{{ config('variables.templateName') }}</span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
@@ -19,7 +27,6 @@ use Illuminate\Support\Facades\Route;
 
     <ul class="menu-inner py-1">
         @foreach ($menuData[0]->menu as $menu)
-
         {{-- adding active and open class if child is active --}}
 
         {{-- menu headers --}}
