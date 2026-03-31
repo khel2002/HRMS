@@ -348,10 +348,16 @@ function addGovIdRow() {
     'beforeend',
     `
     <div class="govid-row row g-2 align-items-center mt-2">
-      <div class="col-md-10">
+      <div class="col-md-5">
         <input type="text" name="gov_ids[${idx}][name]" class="form-control"
-          placeholder="e.g. PhilHealth No. 01-234567890-1">
+          placeholder="ID Name" required>
       </div>
+
+      <div class="col-md-5">
+        <input type="text" name="gov_ids[${idx}][id_number]" class="form-control"
+          placeholder="ID Number" required>
+      </div>
+
       <div class="col-md-2">
         <button type="button" class="btn btn-outline-danger btn-sm w-100"
           onclick="this.closest('.govid-row').remove()">
@@ -708,5 +714,3 @@ const Address = (() => {
 
   return { init, copyPermToCurr, resetBlock };
 })();
-
-
