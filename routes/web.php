@@ -17,6 +17,7 @@ Route::get('/', [LoginBasic::class, 'index'])->name('home');
 Route::get('/face-recognition-login', [LoginBasic::class, 'faceRecognitionLogin'])->name('face-recognition-login');
 Route::get('/employees/get-enrolled-descriptors', [LoginBasic::class, 'getEnrolledDescriptors'])->name('employees.enrolled.descriptors');
 Route::post('/employees/attendance/log-book', [LoginBasic::class, 'storeLog'])->name('employees.attendance.log-book');
+Route::get('/employees/user-logs',[LoginBasic::class,'userLogs'])->name('employees.user-logs');
 
 
 
