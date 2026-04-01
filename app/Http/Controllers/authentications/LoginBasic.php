@@ -8,6 +8,7 @@ use App\Models\LogImage;
 use App\Models\UserLogs;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Storage;
 
@@ -16,6 +17,30 @@ class LoginBasic extends Controller
   public function index()
   {
     return view('content.authentications.auth-login-basic');
+  }
+  public function authLogin(Request $request){
+
+
+    $credentials = $request->validate([
+        'username' => 'required',
+        'password' => 'required'
+    ]);
+
+ 
+    if (Auth::attempt($credentials)) {
+
+      
+        $request->session()->regenerate();
+
+        
+        return redirect()->route('employee-registration');
+    }
+
+
+    return back()->withErrors([
+        'username' => 'Invalid username or password',
+    ])->withInput();
+
   }
 
   public function faceRecognitionLogin()
@@ -223,6 +248,7 @@ public function storeLog(Request $request)
 
 
     $userLogs = LogImage::orderBy('captured_at','desc')->get();     
+    
     return view('_partials._attendance-log-item', compact('userLogs'))->render();
   }
 }

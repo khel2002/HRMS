@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 // Main Page Route
 
 Route::get('/', [LoginBasic::class, 'index'])->name('home');
+Route::post('/auth/login',[LoginBasic::class,'authLogin'])->name('auth.login');
 Route::get('/face-recognition-login', [LoginBasic::class, 'faceRecognitionLogin'])->name('face-recognition-login');
 Route::get('/employees/get-enrolled-descriptors', [LoginBasic::class, 'getEnrolledDescriptors'])->name('employees.enrolled.descriptors');
 Route::post('/employees/attendance/log-book', [LoginBasic::class, 'storeLog'])->name('employees.attendance.log-book');
@@ -23,6 +24,10 @@ Route::get('/employees/user-logs', [LoginBasic::class, 'userLogs'])->name('emplo
 
 // Employee Management
 Route::prefix('admin')->group(function () {
+
+
+    Route::get('/dashboard',[AdminEmployeesController::class,'dashboard'])->name('dashboard');
+
   Route::prefix('employees')->group(function () {
 
 
