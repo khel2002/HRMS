@@ -3,7 +3,7 @@
 return [
   "creatorName" => "ThemeSelection",
   "creatorUrl" => "https://themeselection.com",
-  "templateName" => "HRMS",
+  "templateName" => "HRIS",
   "templateSuffix" => "",
   "templateVersion" => "2.0.0",
   "templateFree" => true,

@@ -1,9 +1,15 @@
 
+
 @foreach($userLogs as $userLog)
+@php
+    $imagePath = $userLog->image_path;
+@endphp
 <div class="card shadow-none border bg-labe p-3 rounded-3">
     <div class="d-flex align-items-center">
         <div class="flex-shrink-0">
-            <img id="logAvatar" src="{{ asset('storage/'. $userLog->image_path) }}" 
+            <img id="logAvatar"  src="{{ $imagePath && Storage::disk('public')->exists($imagePath)
+            ? asset('storage/' . $imagePath)
+            : asset('assets/img/avatars/1.png') }}"
                 alt="Avatar" class=" border border-2 border-white" 
                 style="width: 65px; height: 65px; object-fit: cover;">
         </div>
