@@ -44,7 +44,7 @@ class Employee extends Model
 
   // ── Constants (match the ENUM values in the DB) ───────────────────────────
 
-  const GENDERS        = ['male', 'female', 'other'];
+  const GENDERS        = ['male', 'female'];
   const CIVIL_STATUSES = ['single', 'married', 'widow'];
   const BLOOD_TYPES    = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const STATUSES       = ['active', 'inactive', 'suspended'];

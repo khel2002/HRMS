@@ -37,10 +37,10 @@
       "menuHeader": "Attendance & Request"
     },
     {
-      "url": "admin/employees/DTR",
-      "name": "DTR",
+      "url": "face-recognition-login",
+      "name": "DTR Attendance",
       "icon": "menu-icon icon-base ri ri-time-line",
-      "slug": "DTR"
+      "slug": "face-recognition-login"
     },
     {
       "url": "/admin/itinerary-slip",

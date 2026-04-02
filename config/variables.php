@@ -18,7 +18,7 @@ return [
   "ogTitle" => "Materio Bootstrap 5 HTML + Laravel Admin Template by ThemeSelection",
   "ogImage" => "https://ts-assets.b-cdn.net/ts-assets/materio/materio-bootstrap-laravel-admin-template/marketing/materio-bootstrap-laravel-admin-template-smm.png",
   "ogType" => "product",
-"moreThemes" => "https://themeselection.com/",
+  "moreThemes" => "https://themeselection.com/",
   "documentation" => "https://demos.themeselection.com/materio-bootstrap-html-admin-template/documentation",
   "repository" => "https://github.com/themeselection/materio-bootstrap-html-laravel-admin-template-free",
   "gitRepo" => "https://github.com/themeselection/materio-bootstrap-html-laravel-admin-template-free.git",
