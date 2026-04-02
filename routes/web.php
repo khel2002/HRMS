@@ -9,9 +9,15 @@ use App\Http\Controllers\LeaveApplicationController;
 use App\Http\Controllers\LeaveSummaryController;
 use App\Models\LogImage;
 use App\Models\UserLogs;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 // Main Page Route
+
+Route::get('/encryption-test',function (){
+
+ dd(Hash::make('hrs123'));
+});
 
 Route::get('/', [LoginBasic::class, 'index'])->name('home');
 Route::post('/auth/login',[LoginBasic::class,'authLogin'])->name('auth.login');
@@ -27,6 +33,7 @@ Route::prefix('admin')->group(function () {
 
 
     Route::get('/dashboard',[AdminEmployeesController::class,'dashboard'])->name('dashboard');
+    Route::get('/logout',[LoginBasic::class,'logout'])->name('logout');
 
   Route::prefix('employees')->group(function () {
 

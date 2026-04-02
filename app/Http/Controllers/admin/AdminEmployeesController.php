@@ -36,6 +36,11 @@ class AdminEmployeesController extends Controller
 
     return view('content.admin.employees-management.employees-index', compact('employees'));
   }
+  
+
+  public function dashboard(){
+    return view('content.admin.dashboard.dashboard-hris');
+  }
 
   public function updateStatus(Request $request, string $encryptedId): RedirectResponse
   {
