@@ -13,20 +13,26 @@
   </div>
 @endif
 
-<!-- ! Not required for layout-without-menu -->
-@if (!isset($navbarHideToggle))
-  <div
-    class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 {{ isset($contentNavbar) ? ' d-xl-none ' : '' }}">
-    <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
-      <i class="icon-base ri ri-menu-line icon-md"></i>
-    </a>
+
+
+<div class="navbar-nav-right d-flex align-items-center bg-white p-2 m-0 mt-2 shadow-sm rounded-1" id="navbar-collapse">
+
+  <!-- ! Not required for layout-without-menu -->
+  @if (!isset($navbarHideToggle))
+    <div
+      class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 {{ isset($contentNavbar) ? ' d-xl-none ' : '' }} bg-white mx-2">
+      <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+        <i class="icon-base ri ri-menu-line icon-md"></i>
+      </a>
+    </div>
+  @endif
+
+  <div class="img-container d-xl-none mx-2">
+      <img src="{{ asset('assets/img/logo/HRIS-LOGO.png') }}" alt="Logo" style="width: 30px; height: auto;">
   </div>
-@endif
-
-<div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-
   <!-- /Search -->
   <ul class="navbar-nav flex-row align-items-center ms-auto">
+
 
     <!-- User -->
     <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -71,7 +77,7 @@
         </li>
         <li>
           <div class="d-grid px-4 pt-2 pb-1">
-            <a class="btn btn-danger d-flex" href="javascript:void(0);">
+            <a class="btn btn-danger d-flex" href="{{ route('logout') }}">
               <small class="align-middle">Logout</small>
               <i class="ri ri-logout-box-r-line ms-2 icon-xs"></i>
             </a>

@@ -46,6 +46,15 @@
         object-position: center;
         display: block;
     }
+/* 
+    @media (min-width: 768px) {
+        .auth-image-side img {
+            width: 400px !important;
+            height: 300px;
+            object-position: center;
+            display: block;
+        }
+    } */
 
     @media (max-width: 767.98px) {
         .auth-card {
@@ -77,7 +86,7 @@
 <div class="auth-page-bg">
     <div class="auth-card">
         <div class="auth-form-side">
-            <div class="app-brand mb-4 d-lg-none" style="display:flex; justify-content:center">
+            <div class="app-brand mb-4 d-lg-none d-md-none" style="display:flex; justify-content:center">
                  <img src="{{ asset('assets/img/logo/HRIS-LOGO.png') }}" alt="Logo" style="width: 50px; height: auto;">
             </div>
 
@@ -130,14 +139,14 @@
                 </div>
             </form>
 
-            <p class="text-center mb-0">
+            {{-- <p class="text-center mb-0">
                 <span>New on our platform? </span>
                 <a href="{{ url('auth/register-basic') }}">Create an account</a>
-            </p>
+            </p> --}}
 
         </div>
 
-        <div class="auth-image-side d-none d-md-none d-lg-flex">
+        <div class="auth-image-side d-none d-md-flex d-lg-flex">
             <img src="{{ asset('assets/img/backgrounds/auth-bg-remove.png') }}" alt="Auth Background">
         </div>
 

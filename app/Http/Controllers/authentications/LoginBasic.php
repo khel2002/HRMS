@@ -32,9 +32,10 @@ class LoginBasic extends Controller
       
         $request->session()->regenerate();
 
+        return redirect()->route('dashboard');
         
-        return redirect()->route('employee-registration');
     }
+
 
 
     return back()->withErrors([
@@ -250,5 +251,13 @@ public function storeLog(Request $request)
     $userLogs = LogImage::orderBy('captured_at','desc')->get();     
     
     return view('_partials._attendance-log-item', compact('userLogs'))->render();
+  }
+
+  public function logout(Request $request)
+  {
+      Auth::logout();
+      $request->session()->invalidate();
+
+      return redirect()->route('home');
   }
 }
