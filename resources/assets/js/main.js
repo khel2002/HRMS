@@ -45,6 +45,14 @@ document.addEventListener('DOMContentLoaded', function () {
     item.addEventListener('click', event => {
       event.preventDefault();
       window.Helpers.toggleCollapsed();
+      // Persist "dock" state (desktop) if enabled.
+      try {
+        if (window.config?.enableMenuLocalStorage) {
+          localStorage.setItem('layoutMenuCollapsed', window.Helpers.isCollapsed() ? 'true' : 'false');
+        }
+      } catch (e) {
+        // ignore storage errors (private mode, disabled storage, etc.)
+      }
     });
   });
 
@@ -133,6 +141,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // If current layout is vertical and current window screen is > small
 
-  // Auto update menu collapsed/expanded based on the themeConfig
-  window.Helpers.setCollapsed(true, false);
+  // Restore menu dock state on desktop.
+  let initialCollapsed = false;
+  try {
+    if (window.config?.enableMenuLocalStorage) {
+      const saved = localStorage.getItem('layoutMenuCollapsed');
+      if (saved !== null) initialCollapsed = saved === 'true' || saved === '1';
+    }
+  } catch (e) {
+    // ignore storage errors
+  }
+  window.Helpers.setCollapsed(initialCollapsed, false);
 })();

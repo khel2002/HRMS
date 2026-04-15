@@ -12,7 +12,7 @@
   <div class="col-md-4">
     <label class="form-label">Employee Number <span class="text-danger">*</span></label>
     <input type="text" name="employee_number" class="form-control @error('employee_number') is-invalid @enderror"
-      placeholder="EMP-000#" value="{{ old('employee_number') }}" required>
+      value="{{ old('employee_number') }}" required>
     @error('employee_number')
       <div class="invalid-feedback">{{ $message }}</div>
     @enderror

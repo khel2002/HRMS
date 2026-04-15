@@ -327,7 +327,22 @@ const Helpers = {
           this._redrawLayoutMenu() ? 5 : 0
         )
       }
+
+      return
     }
+
+    // Desktop "docked" menu uses the root class `layout-menu-collapsed`.
+    // When collapsed, hovering the menu can temporarily expand it via `layout-menu-hover`.
+    if (collapsed) {
+      this._addClass('layout-menu-collapsed')
+      this._setMenuHoverState(false)
+    } else {
+      this._removeClass('layout-menu-collapsed')
+      this._setMenuHoverState(false)
+    }
+
+    // Recompute menu height / scrollbar after width changes.
+    if (typeof this._redrawLayoutMenu === 'function') this._redrawLayoutMenu()
   },
 
   // ---
@@ -423,11 +438,10 @@ const Helpers = {
 
     if (!this._menuMouseEnter) {
       this._menuMouseEnter = () => {
-        if (this.isSmallScreen() || this._hasClass('layout-transitioning')) {
-          return this._setMenuHoverState(false)
-        }
+        if (this.isSmallScreen() || this._hasClass('layout-transitioning')) return
 
-        return this._setMenuHoverState(false)
+        // Only enable hover expansion when the menu is docked (collapsed) on desktop.
+        this._setMenuHoverState(this.isCollapsed())
       }
       layoutMenu.addEventListener('mouseenter', this._menuMouseEnter, false)
       layoutMenu.addEventListener('touchstart', this._menuMouseEnter, false)
@@ -435,6 +449,7 @@ const Helpers = {
 
     if (!this._menuMouseLeave) {
       this._menuMouseLeave = () => {
+        if (this.isSmallScreen() || this._hasClass('layout-transitioning')) return
         this._setMenuHoverState(false)
       }
       layoutMenu.addEventListener('mouseleave', this._menuMouseLeave, false)
@@ -503,7 +518,7 @@ const Helpers = {
       this._bindLayoutAnimationEndEvent(
         () => {
           // Collapse / Expand
-          if (this.isSmallScreen) this._setCollapsed(collapsed)
+          this._setCollapsed(collapsed)
         },
         () => {
           this._removeClass('layout-transitioning')

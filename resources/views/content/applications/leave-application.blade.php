@@ -35,6 +35,22 @@
 
 @section('content')
 
+  @php
+    $allowEmployeeSelection = $allowEmployeeSelection ?? true;
+    $initialEmployee = $initialEmployee ?? null;
+    $initialEmployeeInfo = $initialEmployee ? [
+      'id'              => $initialEmployee->id,
+      'employee_number' => $initialEmployee->employee_number,
+      'first_name'      => $initialEmployee->first_name,
+      'middle_name'     => $initialEmployee->middle_name,
+      'last_name'       => $initialEmployee->last_name,
+      'position_id'     => $initialEmployee->position_id,
+      'office_id'       => $initialEmployee->office_id,
+      'position_name'   => $initialEmployee->position?->position_name ?? '—',
+      'office_name'     => $initialEmployee->office?->office_name ?? '—',
+    ] : null;
+  @endphp
+
   {{-- Toast container (outside form, fixed position) --}}
   <div id="toastContainer"></div>
 
@@ -71,27 +87,42 @@
 
             {{-- ── Employee Search ── --}}
             <div class="col-12">
-              <label class="form-label fw-semibold">
-                Search Employee
-                <span class="text-danger">*</span>
-              </label>
-              <div class="employee-search-wrap position-relative">
-                <div class="input-group">
-                  <span class="input-group-text bg-white">
-                    <i class="ri ri-search-line text-muted"></i>
-                  </span>
-                  <input type="text" id="employeeSearchInput" class="form-control"
-                    placeholder="Type employee number or name…" autocomplete="off">
-                  <button type="button" class="btn btn-outline-secondary" id="clearEmployeeBtn" style="display:none;"
-                    title="Clear employee">
-                    <i class="ri ri-close-line"></i>
-                  </button>
+              @if($allowEmployeeSelection)
+                <label class="form-label fw-semibold">
+                  Search Employee
+                  <span class="text-danger">*</span>
+                </label>
+                <div class="employee-search-wrap position-relative">
+                  <div class="input-group">
+                    <span class="input-group-text bg-white">
+                      <i class="ri ri-search-line text-muted"></i>
+                    </span>
+                    <input type="text" id="employeeSearchInput" class="form-control"
+                      placeholder="Type employee number or name…" autocomplete="off">
+                    <button type="button" class="btn btn-outline-secondary" id="clearEmployeeBtn" style="display:none;"
+                      title="Clear employee">
+                      <i class="ri ri-close-line"></i>
+                    </button>
+                  </div>
+                  {{-- Dropdown results --}}
+                  <ul class="employee-search-dropdown list-unstyled mb-0" id="employeeDropdown" style="display:none;"></ul>
                 </div>
-                {{-- Dropdown results --}}
-                <ul class="employee-search-dropdown list-unstyled mb-0" id="employeeDropdown" style="display:none;"></ul>
-              </div>
-              {{-- Hidden employee_id posted with the form --}}
-              <input type="hidden" name="employee_id" id="selectedEmployeeId">
+              @else
+                <label class="form-label fw-semibold">Employee</label>
+                <div class="alert alert-secondary d-flex align-items-start gap-2 py-2 mb-1" style="font-size:.9rem;">
+                  <i class="ri ri-user-line fs-5"></i>
+                  <div>
+                    Filing for <strong>{{ $initialEmployee?->full_name ?? 'your own account' }}</strong>
+                    <br>
+                    <small class="text-muted">Employee No. {{ $initialEmployee?->employee_number ?? '—' }}</small>
+                  </div>
+                </div>
+                <small class="text-muted" style="font-size:.78rem;">
+                  Search is disabled for Employee accounts; your employee record is automatically used.
+                </small>
+              @endif
+              <input type="hidden" name="employee_id" id="selectedEmployeeId"
+                value="{{ $initialEmployee?->id ?? '' }}">
             </div>
 
             {{-- ── Auto-populated name fields ── --}}
@@ -99,29 +130,29 @@
               <label class="form-label">Employee Name</label>
               <div class="row g-2">
                 <div class="col-4">
-                  <input type="hidden" name="last_name" id="hiddenLastName">
+                  <input type="hidden" name="last_name" id="hiddenLastName" value="{{ $initialEmployee?->last_name ?? '' }}">
                   <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
                     <span class="fw-semibold text-body emp-field-value" id="displayLastName"
-                      style="font-size:.875rem;">—</span>
+                      style="font-size:.875rem;">{{ $initialEmployee?->last_name ?? '—' }}</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">Last Name</small>
                   </div>
                 </div>
                 <div class="col-4">
-                  <input type="hidden" name="first_name" id="hiddenFirstName">
+                  <input type="hidden" name="first_name" id="hiddenFirstName" value="{{ $initialEmployee?->first_name ?? '' }}">
                   <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
                     <span class="fw-semibold text-body emp-field-value" id="displayFirstName"
-                      style="font-size:.875rem;">—</span>
+                      style="font-size:.875rem;">{{ $initialEmployee?->first_name ?? '—' }}</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">First Name</small>
                   </div>
                 </div>
                 <div class="col-4">
-                  <input type="hidden" name="middle_name" id="hiddenMiddleName">
+                  <input type="hidden" name="middle_name" id="hiddenMiddleName" value="{{ $initialEmployee?->middle_name ?? '' }}">
                   <div class="form-control bg-light d-flex flex-column emp-display-field"
                     style="height:auto;min-height:38px;padding:.5rem .75rem;">
                     <span class="fw-semibold text-body emp-field-value" id="displayMiddleName"
-                      style="font-size:.875rem;">—</span>
+                      style="font-size:.875rem;">{{ $initialEmployee?->middle_name ?? '—' }}</span>
                     <small class="text-muted" style="font-size:.72rem;line-height:1.2;">Middle Name</small>
                   </div>
                 </div>
@@ -141,13 +172,13 @@
             {{-- Position — auto-filled from employee record --}}
             <div class="col-12 col-sm-6 col-md-4">
               <label class="form-label">Position / Designation</label>
-              <input type="hidden" name="position_id" id="hiddenPositionId">
+              <input type="hidden" name="position_id" id="hiddenPositionId" value="{{ $initialEmployee?->position_id ?? '' }}">
               <div class="input-group">
                 <span class="input-group-text bg-light">
                   <i class="ri ri-briefcase-line text-muted"></i>
                 </span>
                 <div class="form-control bg-light d-flex align-items-center" id="displayPosition"
-                  style="color:#555;font-size:.875rem;">—</div>
+                  style="color:#555;font-size:.875rem;">{{ $initialEmployee?->position?->position_name ?? '—' }}</div>
               </div>
             </div>
 
@@ -159,7 +190,7 @@
                   <i class="ri ri-building-line text-muted"></i>
                 </span>
                 <div class="form-control bg-light d-flex align-items-center" id="displayOffice"
-                  style="color:#555;font-size:.875rem;">—</div>
+                  style="color:#555;font-size:.875rem;">{{ $initialEmployee?->office?->office_name ?? '—' }}</div>
               </div>
             </div>
 
@@ -490,6 +521,12 @@
 
   {{-- ── Scripts ────────────────────────────────────────────────── --}}
   {{-- Form wizard (popovers, card selection, date calc, AJAX submit) --}}
+  <script>
+    window.LEAVE_APP_CONFIG = {
+      allowEmployeeSelection: {{ $allowEmployeeSelection ? 'true' : 'false' }},
+      initialEmployee: @json($initialEmployeeInfo),
+    };
+  </script>
   <script src="{{ asset('assets/js/leave-application.js') }}"></script>
 
   <script>

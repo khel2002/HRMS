@@ -3,7 +3,7 @@
 
 @section('vendor-style')
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-  <link rel="stylesheet" href="{{ asset('assets/css/registration.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/registration.css') }}">
 @endsection
 
 @section('content')

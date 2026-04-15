@@ -1,4 +1,3 @@
-// assets/js/registration.js
 'use strict';
 
 // ─────────────────────────────────────────────────────────────
@@ -306,13 +305,11 @@ function buildEduRowHTML(level, idx) {
         </div>
         <div class="col-md-4">
           <label class="form-label">Degree / Course</label>
-          <input type="text" name="education[${idx}][degree_course]" class="form-control"
-            placeholder="e.g. BS Computer Science">
+          <input type="text" name="education[${idx}][degree_course]" class="form-control">
         </div>
         <div class="col-md-3">
           <label class="form-label">From (Year)</label>
-          <input type="number" name="education[${idx}][period_from]" class="form-control"
-            placeholder="2010" min="1950" max="2099">
+          <input type="number" name="education[${idx}][period_from]" class="form-control">
         </div>
         <div class="col-md-3">
           <label class="form-label">To (Year)</label>
@@ -321,18 +318,15 @@ function buildEduRowHTML(level, idx) {
         </div>
         <div class="col-md-3">
           <label class="form-label">Year Graduated</label>
-          <input type="number" name="education[${idx}][year_graduated]" class="form-control"
-            placeholder="2016" min="1950" max="2099">
+          <input type="number" name="education[${idx}][year_graduated]" class="form-control">
         </div>
         <div class="col-md-3">
           <label class="form-label">Highest Level / Units</label>
-          <input type="text" name="education[${idx}][highest_level_units]" class="form-control"
-            placeholder="Completed">
+          <input type="text" name="education[${idx}][highest_level_units]" class="form-control">
         </div>
         <div class="col-md-6">
           <label class="form-label">Scholarship / Honors</label>
-          <input type="text" name="education[${idx}][scholarship_honors]" class="form-control"
-            placeholder="With Honors">
+          <input type="text" name="education[${idx}][scholarship_honors]" class="form-control">
         </div>
       </div>
     </div>`;

@@ -3,6 +3,9 @@
 (function () {
   // ── CSRF token ────────────────────────────────────────────────
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+  const LEAVE_APP_CONFIG = window.LEAVE_APP_CONFIG ?? {};
+  const ALLOW_EMPLOYEE_SELECTION = LEAVE_APP_CONFIG.allowEmployeeSelection ?? true;
+  const INITIAL_EMPLOYEE = LEAVE_APP_CONFIG.initialEmployee ?? null;
 
   // ── Auto-set filing date on load ─────────────────────────────
   (function setFilingDate() {
@@ -668,6 +671,9 @@
   window.resetLeaveForm = function () {
     form.reset();
     clearEmployee(); // also calls hideBalancePanel()
+    if (INITIAL_EMPLOYEE) {
+      populateEmployee(INITIAL_EMPLOYEE);
+    }
 
     // Clear all leave type card highlights (checkboxes)
     document.querySelectorAll('.leave-card').forEach(c => {
@@ -706,6 +712,15 @@
     if (wr) wr.textContent = '—';
     if (we) we.style.display = 'none';
   };
+
+  if (INITIAL_EMPLOYEE) {
+    populateEmployee(INITIAL_EMPLOYEE);
+  } else if (!ALLOW_EMPLOYEE_SELECTION) {
+    const presetId = document.getElementById('selectedEmployeeId')?.value;
+    if (presetId) {
+      fetchLeaveBalances(presetId);
+    }
+  }
 
   // ── HTML escape helper ────────────────────────────────────────
   function escHtml(str) {

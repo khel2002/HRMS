@@ -4,9 +4,6 @@
   $levels = [
       1 => 'Primary Education',
       2 => 'Secondary Education',
-      3 => 'Vocational / Trade Course',
-      4 => 'College',
-      5 => 'Graduate Studies',
   ];
   $oldEdu = old('education', []); // empty array by default — no phantom rows
   $oldGovIds = old('gov_ids', []); // empty array by default — no phantom rows
@@ -49,7 +46,7 @@
       <input type="hidden" name="education[{{ $i }}][level_id]" value="{{ $lvId }}">
       <div class="row g-3">
         <div class="col-md-8">
-          <label class="form-label">School / University Name <span class="text-danger">*</span></label>
+          <label class="form-label">School Name <span class="text-danger">*</span></label>
           <input type="text" name="education[{{ $i }}][school_name]"
             class="form-control @error("education.{$i}.school_name") is-invalid @enderror"
             value="{{ $edu['school_name'] ?? '' }}" required>
@@ -143,7 +140,6 @@
           </button>
         </div>
       </div>
-
     @endif
   @endforeach
 </div>

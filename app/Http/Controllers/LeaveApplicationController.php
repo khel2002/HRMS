@@ -16,9 +16,24 @@ class LeaveApplicationController extends Controller
 {
   // ── Web route ─────────────────────────────────────────────────────────────
 
-  public function index()
+  public function index(Request $request)
   {
-    return view('content.applications.leave-application');
+    $user = $request->user();
+    $roleName = $user?->role?->name;
+    $isEmployeeRole = strcasecmp($roleName ?? '', 'Employee') === 0;
+
+    $initialEmployee = null;
+    if ($isEmployeeRole) {
+      $initialEmployee = $user->employee?->load(['position', 'office']);
+      if (! $initialEmployee) {
+        abort(403, 'Your employee profile was not found. Please contact HR.');
+      }
+    }
+
+    return view('content.applications.leave-application', [
+      'allowEmployeeSelection' => ! $isEmployeeRole,
+      'initialEmployee'        => $initialEmployee,
+    ]);
   }
 
   // ── API: GET /admin/api/employees/{id}/leave-balances ─────────────────────
@@ -30,8 +45,12 @@ class LeaveApplicationController extends Controller
   // This means a Sick Leave employee who had 3 days remaining last year
   // will correctly see 8 days (3 carried + 5 new) instead of a flat 5.
 
-  public function balances(int $employeeId): JsonResponse
+  public function balances(Request $request, int $employeeId): JsonResponse
   {
+    if ($resp = $this->ensureEmployeeAccess($request, $employeeId)) {
+      return $resp;
+    }
+
     $employee = Employee::with(['office', 'position'])
       ->findOrFail($employeeId);
 
@@ -130,6 +149,9 @@ class LeaveApplicationController extends Controller
     // ── 2. Load employee ──────────────────────────────────────────────────
 
     $employee = Employee::findOrFail($validated['employee_id']);
+    if ($resp = $this->ensureEmployeeAccess($request, $employee->id)) {
+      return $resp;
+    }
 
     // ── 3. Resolve leave-type slugs → models ──────────────────────────────
 
@@ -278,6 +300,26 @@ class LeaveApplicationController extends Controller
         'message' => 'Something went wrong while saving the application. Please try again.',
       ], 500);
     }
+  }
+
+  private function ensureEmployeeAccess(Request $request, int $employeeId): ?JsonResponse
+  {
+    $user = $request->user();
+    if (! $user) {
+      return null;
+    }
+
+    if (strcasecmp($user->role?->name ?? '', 'Employee') !== 0) {
+      return null;
+    }
+
+    if ($user->employee_id !== $employeeId) {
+      return response()->json([
+        'message' => 'Employees may only submit leave applications for their own account.',
+      ], 403);
+    }
+
+    return null;
   }
 
     // ── Private helpers ───────────────────────────────────────────────────────

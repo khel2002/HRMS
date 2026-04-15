@@ -1,0 +1,31 @@
+{
+  "menu": [
+    {
+      "url": "/employees/dashboard",
+      "name": "Dashboard",
+      "icon": "menu-icon icon-base ri ri-home-smile-line",
+      "slug": "employees.dashboard"
+    },
+    {
+      "menuHeader": "Employee"
+    },
+    {
+      "url": "face-recognition-login",
+      "name": "DTR Attendance",
+      "icon": "menu-icon icon-base ri ri-time-line",
+      "slug": "face-recognition-login"
+    },
+    {
+      "url": "/employees/itinerary-slip",
+      "name": "Itinerary Slip",
+      "icon": "menu-icon icon-base ri ri-map-pin-line",
+      "slug": "itinerary-slip"
+    },
+    {
+      "url": "/employees/leave-application",
+      "name": "File A Leave",
+      "icon": "menu-icon icon-base ri ri-map-pin-line",
+      "slug": "employees.leave-application"
+    }
+  ]
+}

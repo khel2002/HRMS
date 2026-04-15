@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\View;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Auth;
+
 
 use Illuminate\Support\ServiceProvider;
 
@@ -22,10 +24,32 @@ class MenuServiceProvider extends ServiceProvider
    */
   public function boot(): void
   {
-    $verticalMenuJson = file_get_contents(base_path('resources/menu/AdminMenu.json'));
-    $verticalMenuData = json_decode($verticalMenuJson);
+    View::composer('*', function ($view) {
 
-    // Share all menuData to all the views
-    $this->app->make('view')->share('menuData', [$verticalMenuData]);
+      if (! Auth::check()) {
+        $view->with('menuData', [json_decode('{"menu":[]}')]);
+        return;
+      }
+
+
+      $roleName = Auth::user()->role?->name;
+
+      $menuFile = match ($roleName) {
+        'Admin'  => 'AdminMenu.json',
+        'HR'     => 'HrMenu.json',
+        'Employee'  => 'EmployeesMenu.json',  // any other role → employee self-service menu
+      };
+
+      $path = base_path("resources/menu/{$menuFile}");
+
+      // Guard against missing file so the app doesn't crash
+      if (! file_exists($path)) {
+        $view->with('menuData', [json_decode('{"menu":[]}')]);
+        return;
+      }
+
+      $menuData = json_decode(file_get_contents($path));
+      $view->with('menuData', [$menuData]);
+    });
   }
 }

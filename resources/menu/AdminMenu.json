@@ -37,6 +37,12 @@
       "menuHeader": "Attendance & Request"
     },
     {
+      "url": "/admin/attendance-report",
+      "name": "Attendance Report",
+      "icon": "menu-icon icon-base ri ri-calendar-todo-line",
+      "slug": ""
+    },
+    {
       "url": "face-recognition-login",
       "name": "DTR Attendance",
       "icon": "menu-icon icon-base ri ri-time-line",

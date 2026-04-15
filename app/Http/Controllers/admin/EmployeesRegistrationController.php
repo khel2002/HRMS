@@ -252,6 +252,10 @@ class EmployeesRegistrationController extends Controller
   {
     $q = trim($request->input('q', ''));
 
+    if (strcasecmp($request->user()?->role?->name ?? '', 'Employee') === 0) {
+      return response()->json(['message' => 'Unauthorized'], 403);
+    }
+
     if (strlen($q) < 2) {
       return response()->json([]);
     }
