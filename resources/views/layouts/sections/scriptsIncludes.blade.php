@@ -1,5 +1,5 @@
 @php
-use Illuminate\Support\Facades\Vite;
+  use Illuminate\Support\Facades\Vite;
 @endphp
 <!-- laravel style -->
 @vite(['resources/assets/vendor/js/helpers.js'])

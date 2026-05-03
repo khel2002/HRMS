@@ -273,5 +273,9 @@
   </div>
   @include('content.applications.view-modal')
   @include('content.applications.disapproval-modal')
+  <script>
+    window.BACKOFFICE_API_BASE = "{{ url('admin/api') }}";
+    window.LR_BASE = window.BACKOFFICE_API_BASE + "/leave-requests";
+  </script>
   <script src="{{ asset('assets/js/leave-summary.js') }}"></script>
 @endsection

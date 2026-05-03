@@ -3,17 +3,18 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Daily attendance report — client-side logic.
  *
- * Sections handled:  Summary cards  |  Late Arrivals  |  On Leave
- * Removed:           Absent list (dropped per updated requirements)
+ * Sections:  Summary cards | Late Employees | On Leave | Absent | Pending
  *
  * Features:
- *   • Prev/Next/Today day navigation — weekends auto-skipped both directions.
- *   • Client-side weekend/future guard — no AJAX fired for invalid dates.
- *   • Notice panel replaces data panels for weekend/future/error states.
+ *   • Prev/Next/Today day navigation — weekends auto-skipped.
+ *   • Client-side weekend/future guard — no AJAX for invalid dates.
+ *   • Time-based absent/pending toggle: before 12:00 PM → Pending shown,
+ *     Absent hidden. After 12:00 PM → Absent shown, Pending hidden.
+ *   • Notice panel for weekend/future/error states.
  *   • Shimmer skeleton loaders during fetch.
  *   • In-flight XHR aborted on rapid navigation.
  *   • Inline Retry button on network/server failure.
- *   • Stat-card numbers animate (ease-out cubic) on each data update.
+ *   • Stat-card numbers animate (ease-out cubic) on data update.
  *   • Live employee search + section filter (debounced 200 ms).
  *   • All dynamic HTML sanitised via escHtml() (XSS-safe).
  *
@@ -24,11 +25,13 @@
   'use strict';
 
   /* ═══════════════════════════════════════════════════════════════════════════
-     CONFIG  — injected by Blade so URLs never need to be hardcoded here
+     CONFIG — injected by Blade
   ═══════════════════════════════════════════════════════════════════════════ */
   const CFG = window.AttConfig ?? {};
   const ROUTE_DAILY = CFG.routes?.daily ?? '/admin/attendance-report/daily';
+  const ROUTE_PDF = CFG.routes?.pdf ?? '/admin/attendance-report/pdf';
   const TODAY_STR = CFG.today ?? toISO(new Date());
+  const CUTOFF_TIME = CFG.cutoffTime ?? '12:00:00'; // HH:MM:SS
 
   /* ═══════════════════════════════════════════════════════════════════════════
      STATE
@@ -40,16 +43,51 @@
      INIT
   ═══════════════════════════════════════════════════════════════════════════ */
   $(function () {
-    injectShimmerKeyframe();
     bindDayNav();
     bindFilters();
+    bindExportButtons();
     refreshDateLabel();
-    // First paint is server-rendered — no AJAX needed on initial load.
+    // If today: poll every 60 s so absent list activates at cutoff without refresh.
+    if (toISO(currentDate) === TODAY_STR) {
+      setInterval(pollCutoff, 60_000);
+    }
+    // First paint is server-rendered — no AJAX on initial load.
   });
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CUTOFF POLL (today only)
+     Checks whether the absent section should now be shown without a full reload.
+  ═══════════════════════════════════════════════════════════════════════════ */
+  function pollCutoff() {
+    if (toISO(currentDate) !== TODAY_STR) return;
+    const nowTime = nowHMS();
+    const alreadyShowing = $('#section-absent').is(':visible');
+
+    if (!alreadyShowing && nowTime >= CUTOFF_TIME) {
+      // Cutoff just passed — re-fetch to get the fresh absent list.
+      fetchDailyData();
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      DAY NAVIGATION
   ═══════════════════════════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     EXPORT BUTTONS
+  ═══════════════════════════════════════════════════════════════════════════ */
+  function bindExportButtons() {
+    // PDF — opens in new tab for the currently viewed date
+    $('#btnExportPdf').on('click', function () {
+      const dateStr = toISO(currentDate);
+      const url = ROUTE_PDF + '?date=' + dateStr;
+      window.open(url, '_blank');
+    });
+
+    // Excel — placeholder; implement server-side export as needed
+    $('#btnExportExcel').on('click', function () {
+      alert('Excel export coming soon.');
+    });
+  }
 
   function bindDayNav() {
     $('#btnPrevDay').on('click', function () {
@@ -72,15 +110,17 @@
   }
 
   function refreshDateLabel() {
-    $('#dateLabel').text(fmtDisplay(currentDate));
+    const d = currentDate;
+    // Subtitle below page title
+    $('#att-date-subtitle').text(fmtLong(d));
+    // Date navigator label span
+    $('#datePickerInput').text(fmtMMDDYYYY(d));
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      AJAX
   ═══════════════════════════════════════════════════════════════════════════ */
-
   function fetchDailyData() {
-    // Cancel any previous in-flight request.
     if (activeXHR) {
       activeXHR.abort();
       activeXHR = null;
@@ -88,7 +128,7 @@
 
     const dateStr = toISO(currentDate);
 
-    // ── Client-side guards (no network round-trip needed) ─────────────────
+    // ── Client-side guards ─────────────────────────────────────────────────
     if (isWeekend(currentDate)) {
       showNotice('weekend', 'Attendance is not recorded on weekends (Saturday & Sunday).');
       return;
@@ -98,7 +138,6 @@
       return;
     }
 
-    // ── Valid workday — fetch from server ─────────────────────────────────
     showSkeletons();
 
     activeXHR = $.ajax({
@@ -109,7 +148,6 @@
     })
       .done(function (res) {
         if (!res.success) {
-          // Server-side validation matched a known reason.
           if (res.reason === 'future' || res.reason === 'weekend') {
             showNotice(res.reason, res.message);
           } else {
@@ -122,11 +160,12 @@
         renderSummary(res.summary);
         renderLate(res.late ?? []);
         renderOnLeave(res.on_leave ?? []);
-        applyFilters(); // re-apply any active search / section filter
+        renderAbsent(res.absent ?? [], res.cutoff_passed);
+        renderPending(res.pending ?? [], res.cutoff_passed);
+        applyFilters();
       })
       .fail(function (xhr) {
         if (xhr.statusText === 'abort') return;
-
         if (xhr.status === 422 && xhr.responseJSON?.reason) {
           showNotice(xhr.responseJSON.reason, xhr.responseJSON.message);
         } else {
@@ -144,116 +183,202 @@
   ═══════════════════════════════════════════════════════════════════════════ */
 
   // ── Summary stat cards ─────────────────────────────────────────────────────
-
   function renderSummary(summary) {
     if (!summary) return;
-    // Animate each stat key that has a matching [data-stat] element.
     Object.entries(summary).forEach(([key, value]) => {
       animateNumber(`[data-stat="${key}"]`, value);
     });
   }
 
-  // ── Late Arrivals ──────────────────────────────────────────────────────────
-
+  // ── Late Employees ─────────────────────────────────────────────────────────
   function renderLate(list) {
     $('#count-late').text(list.length);
     const $tbody = $('#late-list').empty();
 
-    if (list.length === 0) {
-      $tbody.html(`
-        <tr>
-          <td colspan="4">
-            <div class="att-empty" style="padding:2rem;">
-              <i class="ri ri-checkbox-circle-line" style="font-size:2rem;color:var(--att-present,#28a745);"></i>
-              <p style="color:var(--att-muted);margin-top:.5rem;font-size:.83rem;">No late arrivals on this day.</p>
-            </div>
-          </td>
-        </tr>
-      `);
+    if (!list.length) {
+      $tbody.html(emptyRow(4, 'No late arrivals on this day.'));
       return;
     }
 
-    list.forEach(function (emp) {
+    list.forEach(emp => {
+      const severityClass = emp.late_minutes >= 60 ? 'is-severe' : emp.late_minutes >= 30 ? 'is-moderate' : '';
+
       $tbody.append(`
-        <tr class="daily-searchable att-tr-hover"
-            data-name="${emp.name.toLowerCase()}"
-            data-group="late">
-          <td style="padding:.9rem 1.25rem;">
-            <div class="d-flex align-items-center gap-2">
-              <div class="emp-av av-c${emp.av}" style="width:34px;height:34px;font-size:.73rem;">
-                ${makeInitials(emp.name)}
-              </div>
-              <div>
-                <div class="emp-name">${escHtml(emp.name)}</div>
-                <div class="emp-pos">${escHtml(emp.pos)} · ${escHtml(emp.dept)}</div>
-              </div>
+        <tr class="daily-searchable" data-name="${emp.name.toLowerCase()}" data-group="late">
+          <td class="ps-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="att-avatar av-c${emp.av}">${makeInitials(emp.name)}</div>
+              <span class="fw-medium">${escHtml(emp.name)}</span>
             </div>
           </td>
-          <td class="att-td-center fw-semibold">${escHtml(emp.time_in)}</td>
-          <td class="att-td-center">
-            <span class="att-badge b-late">
-              <i class="ri ri-time-line"></i>${escHtml(emp.late_duration)}
-            </span>
+          <td class="py-3">
+            <div class="fw-medium">${escHtml(emp.pos)}</div>
+            <div class="text-muted" style="font-size:.78rem;">${escHtml(emp.dept)}</div>
           </td>
-          <td class="att-td-center">
-            <span class="att-badge" style="background:#fff3cd;color:#856404;font-size:.7rem;">Late</span>
+          <td class="py-3 fw-medium">${escHtml(emp.time_in)}</td>
+          <td class="py-3">
+            <span class="att-late-badge ${severityClass}">
+              <i class="ri-time-line"></i> ${escHtml(emp.late_duration)}
+            </span>
           </td>
         </tr>
       `);
     });
   }
 
-  // ── On Leave ───────────────────────────────────────────────────────────────
-
-  const LEAVE_PALETTE = {
-    sick: { color: 'var(--att-sick)', bg: 'var(--att-sick-soft)' },
-    incentive: { color: 'var(--att-sil)', bg: 'var(--att-sil-soft)' },
-    vacation: { color: 'var(--att-vl)', bg: 'var(--att-vl-soft)' }
+  // ── On Leave (grouped by leave type, matching screenshot) ─────────────────
+  const LEAVE_COLORS = {
+    'service incentive leave': { header: '#eef2ff', accent: '#7367f0', bg: '#e8eeff' },
+    'vacation leave': { header: '#e8f5e9', accent: '#28c76f', bg: '#dff5e3' },
+    'sick leave': { header: '#fff1f1', accent: '#ea5455', bg: '#fce4e4' }
   };
 
-  function leaveColors(type) {
-    const t = (type ?? '').toLowerCase();
-    if (t.includes('sick')) return LEAVE_PALETTE.sick;
-    if (t.includes('incentive')) return LEAVE_PALETTE.incentive;
-    return LEAVE_PALETTE.vacation;
+  function leaveColorFor(typeName) {
+    const key = (typeName ?? '').toLowerCase();
+    for (const [k, v] of Object.entries(LEAVE_COLORS)) {
+      if (key.includes(k.split(' ')[0])) return v; // match first word
+    }
+    return { header: '#f5f5f5', accent: '#888', bg: '#f0f0f0' };
   }
 
   function renderOnLeave(list) {
     $('#count-leave').text(list.length);
-    const $container = $('#leave-list').empty();
+    const $container = $('#leave-groups-container').empty();
 
-    if (list.length === 0) {
-      $container.html(`
-        <div class="att-empty" style="padding:2rem;">
-          <i class="ri ri-checkbox-circle-line" style="font-size:2rem;color:var(--att-present,#28a745);"></i>
-          <p style="color:var(--att-muted);margin-top:.5rem;font-size:.83rem;">No employees on leave on this day.</p>
-        </div>
-      `);
+    if (!list.length) {
+      $container.html(
+        `<div class="card shadow-none border"><div class="card-body">${emptyState('No employees on leave on this day.')}</div></div>`
+      );
       return;
     }
 
-    list.forEach(function (emp) {
-      const { color, bg } = leaveColors(emp.leave_type);
-      const plural = emp.leave_days > 1 ? 's' : '';
+    // Group by leave_type
+    const groups = {};
+    list.forEach(emp => {
+      if (!groups[emp.leave_type]) groups[emp.leave_type] = [];
+      groups[emp.leave_type].push(emp);
+    });
+
+    Object.entries(groups).forEach(([leaveType, employees]) => {
+      const c = leaveColorFor(leaveType);
+      const count = employees.length;
+      const label = count === 1 ? '1 employee' : `${count} employees`;
+
+      let rows = employees
+        .map(
+          emp => `
+        <tr class="daily-searchable" data-name="${emp.name.toLowerCase()}" data-group="leave">
+          <td class="ps-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="att-avatar" style="background:${c.bg};color:${c.accent};">${makeInitials(emp.name)}</div>
+              <span class="fw-medium">${escHtml(emp.name)}</span>
+            </div>
+          </td>
+        </tr>
+      `
+        )
+        .join('');
 
       $container.append(`
-        <div class="daily-emp-row daily-searchable"
-             data-name="${emp.name.toLowerCase()}"
-             data-group="leave">
-          <div class="emp-av av-c${emp.av}">${makeInitials(emp.name)}</div>
-          <div class="daily-emp-info">
-            <div class="daily-emp-name">${escHtml(emp.name)}</div>
-            <div class="daily-emp-meta">${escHtml(emp.pos)} · ${escHtml(emp.dept)}</div>
+        <div class="mb-4 daily-searchable-group" data-group="leave">
+          <div class="d-flex align-items-center justify-content-between mb-2 px-1">
+            <span class="fw-semibold" style="font-size:.9rem;">${escHtml(leaveType)}</span>
+            <span class="text-muted" style="font-size:.8rem;">${label}</span>
           </div>
-          <div class="text-end" style="flex-shrink:0;">
-            <span class="att-badge" style="background:${bg};color:${color};">
-              ${escHtml(emp.leave_type)}
-            </span>
-            <div style="font-size:.7rem;color:var(--att-muted);margin-top:3px;">
-              ${emp.leave_days} day${plural}
+          <div class="card shadow-none border">
+            <div class="table-responsive">
+              <table class="table mb-0" style="font-size:.85rem;">
+                <thead>
+                  <tr style="background:${c.header};">
+                    <th class="att-th ps-4" style="color:${c.accent};">EMPLOYEE NAME</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
             </div>
           </div>
         </div>
+      `);
+    });
+  }
+
+  // ── Absent Employees ───────────────────────────────────────────────────────
+  function renderAbsent(list, cutoffPassed) {
+    $('#count-absent').text(list.length);
+
+    // Show/hide the whole section based on cutoff
+    if (cutoffPassed) {
+      $('#section-absent').show();
+      $('#section-pending').hide();
+      $('#stat-pending-card').hide();
+    } else {
+      $('#section-absent').hide();
+    }
+
+    const $tbody = $('#absent-list').empty();
+
+    if (!list.length) {
+      $tbody.html(emptyRow(3, 'No absences recorded.'));
+      return;
+    }
+
+    list.forEach(emp => {
+      $tbody.append(`
+        <tr class="daily-searchable" data-name="${emp.name.toLowerCase()}" data-group="absent">
+          <td class="ps-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="att-avatar av-absent">${makeInitials(emp.name)}</div>
+              <span class="fw-medium">${escHtml(emp.name)}</span>
+            </div>
+          </td>
+          <td class="py-3">
+            <div class="fw-medium">${escHtml(emp.pos)}</div>
+            <div class="text-muted" style="font-size:.78rem;">${escHtml(emp.dept)}</div>
+          </td>
+          <td class="py-3">
+            <span class="badge bg-label-danger rounded-pill">Absent</span>
+          </td>
+        </tr>
+      `);
+    });
+  }
+
+  // ── Pending Employees (before cutoff, no time-in) ──────────────────────────
+  function renderPending(list, cutoffPassed) {
+    $('#count-pending').text(list.length);
+
+    if (!cutoffPassed) {
+      $('#section-pending').show();
+      $('#stat-pending-card').show();
+    } else {
+      $('#section-pending').hide();
+      $('#stat-pending-card').hide();
+    }
+
+    const $tbody = $('#pending-list').empty();
+
+    if (!list.length) {
+      $tbody.html(emptyRow(3, 'All employees have clocked in.'));
+      return;
+    }
+
+    list.forEach(emp => {
+      $tbody.append(`
+        <tr class="daily-searchable" data-name="${emp.name.toLowerCase()}" data-group="pending">
+          <td class="ps-4 py-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="att-avatar av-pending">${makeInitials(emp.name)}</div>
+              <span class="fw-medium">${escHtml(emp.name)}</span>
+            </div>
+          </td>
+          <td class="py-3">
+            <div class="fw-medium">${escHtml(emp.pos)}</div>
+            <div class="text-muted" style="font-size:.78rem;">${escHtml(emp.dept)}</div>
+          </td>
+          <td class="py-3">
+            <span class="badge bg-label-secondary rounded-pill">Not yet in</span>
+          </td>
+        </tr>
       `);
     });
   }
@@ -261,39 +386,24 @@
   /* ═══════════════════════════════════════════════════════════════════════════
      SKELETON LOADERS
   ═══════════════════════════════════════════════════════════════════════════ */
-
-  function injectShimmerKeyframe() {
-    if (document.getElementById('att-shimmer-kf')) return;
-    $(
-      '<style id="att-shimmer-kf">@keyframes att-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>'
-    ).appendTo('head');
-  }
-
-  const SHIMMER =
-    'height:54px;border-radius:8px;margin:.4rem 0;' +
-    'background:linear-gradient(90deg,#f0f0f5 25%,#e8e8f0 50%,#f0f0f5 75%);' +
-    'background-size:200% 100%;animation:att-shimmer 1.2s infinite;';
-
   function shimmer() {
-    return `<div style="${SHIMMER}"></div>`;
+    return `<div class="att-shimmer-row"></div>`;
   }
 
   function showSkeletons() {
     hideNotice();
-    // Late table: wrap shimmer rows in a full-width td.
-    $('#late-list').html(
-      `<tr><td colspan="4" style="padding:.5rem 1rem;">${Array(4).fill(shimmer()).join('')}</td></tr>`
-    );
-    // Leave list: direct shimmer divs.
-    $('#leave-list').html(Array(3).fill(shimmer()).join(''));
-    // Reset counts while loading.
-    $('#count-late, #count-leave').text('…');
+    const skimRows = n =>
+      `<tr><td colspan="4" style="padding:.5rem 1.5rem;">${Array(n).fill(shimmer()).join('')}</td></tr>`;
+    $('#late-list').html(skimRows(4));
+    $('#absent-list').html(skimRows(3));
+    $('#pending-list').html(skimRows(3));
+    $('#leave-groups-container').html(`<div style="padding:.5rem 0;">${Array(3).fill(shimmer()).join('')}</div>`);
+    $('#count-late, #count-leave, #count-absent, #count-pending').text('…');
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
-     NOTICE PANEL  (weekend / future / error)
+     NOTICE PANEL (weekend / future / error)
   ═══════════════════════════════════════════════════════════════════════════ */
-
   const NOTICE_ICONS = {
     weekend: 'ri-calendar-close-line',
     future: 'ri-hourglass-line',
@@ -302,60 +412,53 @@
 
   function showNotice(reason, message) {
     const icon = NOTICE_ICONS[reason] ?? 'ri-information-line';
-
     $('#att-notice-body').html(`
-      <i class="ri ${icon}" style="font-size:2.8rem;color:var(--att-muted);"></i>
-      <p style="color:var(--att-muted);margin-top:.85rem;font-size:.95rem;max-width:340px;text-align:center;">
+      <i class="ri ${icon}" style="font-size:3rem;color:#a8aaae;"></i>
+      <p class="text-muted mt-3 mb-0" style="font-size:.95rem;max-width:360px;margin:auto;">
         ${escHtml(message)}
       </p>
     `);
-
     $('#att-notice').show();
-    $('#att-data-panels, #att-summary-cards').hide();
-
-    // Clear stat cards.
+    $('#att-data-panels, #att-summary-section').hide();
     $('[data-stat]').text('—');
   }
 
   function hideNotice() {
     $('#att-notice').hide();
-    $('#att-data-panels, #att-summary-cards').show();
+    $('#att-data-panels, #att-summary-section').show();
   }
 
   function showErrorBanner(message) {
     const html = `
-      <div class="att-empty" style="color:var(--att-absent);padding:1.75rem;">
-        <i class="ri ri-error-warning-line" style="font-size:2rem;"></i>
-        <p style="margin:.5rem 0 .75rem;">${escHtml(message)}</p>
-        <button class="att-btn" id="btnRetry" style="font-size:.78rem;padding:.35rem .9rem;">
-          <i class="ri ri-refresh-line"></i> Retry
+      <div class="att-empty-state py-4 text-danger">
+        <i class="ri-error-warning-line" style="font-size:2.5rem;"></i>
+        <p class="mt-2 mb-3">${escHtml(message)}</p>
+        <button class="btn btn-sm btn-outline-danger" id="btnRetry">
+          <i class="ri-refresh-line me-1"></i>Retry
         </button>
       </div>
     `;
     $('#late-list').html(`<tr><td colspan="4">${html}</td></tr>`);
-    $('#leave-list').html(html);
-    // One-time retry handler via delegation.
+    $('#absent-list').html(`<tr><td colspan="3">${html}</td></tr>`);
+    $('#pending-list').html(`<tr><td colspan="3">${html}</td></tr>`);
+    $('#leave-groups-container').html(html);
     $(document).one('click', '#btnRetry', fetchDailyData);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      STAT CARD ANIMATION
   ═══════════════════════════════════════════════════════════════════════════ */
-
   function animateNumber(selector, target) {
     const $el = $(selector);
     if (!$el.length) return;
-
     const start = parseInt($el.text(), 10);
     if (isNaN(start) || start === target) {
       $el.text(target);
       return;
     }
-
-    const STEPS = 20;
-    const MS = 350 / STEPS;
+    const STEPS = 20,
+      MS = 350 / STEPS;
     let step = 0;
-
     const t = setInterval(function () {
       step++;
       const eased = 1 - Math.pow(1 - step / STEPS, 3);
@@ -370,7 +473,6 @@
   /* ═══════════════════════════════════════════════════════════════════════════
      SEARCH + FILTER
   ═══════════════════════════════════════════════════════════════════════════ */
-
   function bindFilters() {
     $('#dailySearch').on('input', debounce(applyFilters, 200));
     $('#dailyFilter').on('change', applyFilters);
@@ -380,29 +482,57 @@
     const q = ($('#dailySearch').val() ?? '').trim().toLowerCase();
     const filter = $('#dailyFilter').val() ?? 'all';
 
+    // Row-level filtering
     $('.daily-searchable').each(function () {
       const $el = $(this);
       const name = $el.data('name') ?? '';
       const group = $el.data('group') ?? '';
-
       const matchQ = !q || name.includes(q);
       const matchF = filter === 'all' || filter === group;
-
       $el.toggle(matchQ && matchF);
     });
 
-    // Show/hide entire section columns based on filter.
-    $('#section-late').toggle(filter === 'all' || filter === 'late');
-    $('#section-leave').toggle(filter === 'all' || filter === 'leave');
+    // Section-level visibility
+    const sections = {
+      late: '#section-late',
+      leave: '#section-leave',
+      absent: '#section-absent',
+      pending: '#section-pending'
+    };
+    Object.entries(sections).forEach(([key, sel]) => {
+      if (filter === 'all') {
+        // Respect the cutoff logic for absent/pending
+        if (key === 'absent') {
+          if ($('#count-absent').text() !== '0' || filter === 'all') $(sel).show();
+        } else if (key === 'pending') {
+          /* controlled by cutoff */
+        } else $(sel).show();
+      } else {
+        $(sel).toggle(filter === key);
+      }
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      DATE HELPERS
   ═══════════════════════════════════════════════════════════════════════════ */
+  const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS_LONG = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+  const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  /** Parse 'YYYY-MM-DD' safely without timezone offset. */
   function parseISO(str) {
     const [y, m, d] = str.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
@@ -410,16 +540,27 @@
     return dt;
   }
 
-  /** Format Date as 'YYYY-MM-DD'. */
   function toISO(d) {
     return (
       d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
     );
   }
 
-  /** Format Date as 'Apr 07, 2026'. */
+  /** "Apr 07, 2026" */
   function fmtDisplay(d) {
-    return MONTHS[d.getMonth()] + ' ' + String(d.getDate()).padStart(2, '0') + ', ' + d.getFullYear();
+    return MONTHS_SHORT[d.getMonth()] + ' ' + String(d.getDate()).padStart(2, '0') + ', ' + d.getFullYear();
+  }
+
+  /** "04/07/2026" */
+  function fmtMMDDYYYY(d) {
+    return (
+      String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear()
+    );
+  }
+
+  /** "Tuesday, April 7, 2026" */
+  function fmtLong(d) {
+    return DAYS_LONG[d.getDay()] + ', ' + MONTHS_LONG[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
   }
 
   function isWeekend(d) {
@@ -427,7 +568,6 @@
     return day === 0 || day === 6;
   }
 
-  /** Move backward one calendar day, skip weekends. */
   function prevWorkday(d) {
     const dt = new Date(d);
     do {
@@ -436,23 +576,30 @@
     return dt;
   }
 
-  /** Move forward one calendar day, skip weekends — but never past today. */
   function nextWorkday(d) {
     const dt = new Date(d);
     const today = parseISO(TODAY_STR);
-
     do {
       dt.setDate(dt.getDate() + 1);
     } while (isWeekend(dt));
-
-    // Do not allow navigating past today.
     return dt > today ? today : dt;
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     UTILITIES
-  ═══════════════════════════════════════════════════════════════════════════ */
+  /** Current time as "HH:MM:SS" */
+  function nowHMS() {
+    const n = new Date();
+    return (
+      String(n.getHours()).padStart(2, '0') +
+      ':' +
+      String(n.getMinutes()).padStart(2, '0') +
+      ':' +
+      String(n.getSeconds()).padStart(2, '0')
+    );
+  }
 
+  /* ═══════════════════════════════════════════════════════════════════════════
+     HTML HELPERS
+  ═══════════════════════════════════════════════════════════════════════════ */
   function makeInitials(name) {
     return (name ?? '')
       .split(' ')
@@ -469,6 +616,17 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function emptyState(msg) {
+    return `<div class="att-empty-state py-4">
+      <i class="ri-checkbox-circle-line text-success" style="font-size:2rem;"></i>
+      <p class="text-muted mt-2 mb-0 small">${escHtml(msg)}</p>
+    </div>`;
+  }
+
+  function emptyRow(cols, msg) {
+    return `<tr><td colspan="${cols}">${emptyState(msg)}</td></tr>`;
   }
 
   function debounce(fn, wait) {

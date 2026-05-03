@@ -6,6 +6,10 @@
 @endsection
 
 @section('content')
+  @php
+    $panelPrefix = strcasecmp(auth()->user()?->role?->name ?? '', 'HR') === 0 ? 'HR' : 'admin';
+    $encryptedId = Crypt::encryptString($employee->id);
+  @endphp
 
   {{-- ══════════════════════════════════════════════════════ ERRORS --}}
   @if ($errors->any())
@@ -25,7 +29,7 @@
 
   {{-- ══════════════════════════════════════════════════════ HEADER --}}
   <div class="d-flex align-items-center gap-3 mb-4">
-    <a href="{{ route('employee-show', Crypt::encryptString($employee->id)) }}" class="btn btn-sm btn-outline-secondary">
+    <a href="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId) }}" class="btn btn-sm btn-outline-secondary">
       <i class="ri ri-arrow-left-line me-1"></i> Back
     </a>
     <div>
@@ -36,7 +40,7 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ route('employee-update', Crypt::encryptString($employee->id)) }}">
+  <form method="POST" action="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId) }}">
     @csrf @method('PUT')
 
     {{-- ══════════════════════════════════════════════════════
@@ -669,7 +673,7 @@
 
     {{-- ══════════════════════════════════════════════════════ FOOTER --}}
     <div class="d-flex justify-content-between align-items-center pb-2">
-      <a href="{{ route('employee-show', Crypt::encryptString($employee->id)) }}" class="btn btn-outline-secondary">
+      <a href="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId) }}" class="btn btn-outline-secondary">
         <i class="ri ri-arrow-left-line me-1"></i> Cancel
       </a>
       <button type="submit" class="btn btn-success px-4">

@@ -129,4 +129,24 @@ class Employee extends Model
   {
     return $this->hasMany(UserLogs::class, 'employee_number');
   }
+  public function salarySetting()
+  {
+    return $this->hasOne(EmployeeSalarySetting::class, 'employee_id')
+      ->where('is_active', 1);
+  }
+
+  public function salarySettings()
+  {
+    return $this->hasMany(EmployeeSalarySetting::class, 'employee_id');
+  }
+
+  public function recurringPayrollItems()
+  {
+    return $this->hasMany(EmployeeRecurringPayrollItem::class, 'employee_id');
+  }
+
+  public function payrolls()
+  {
+    return $this->hasMany(Payroll::class, 'employee_id');
+  }
 }

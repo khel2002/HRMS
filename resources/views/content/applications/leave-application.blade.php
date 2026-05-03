@@ -36,6 +36,12 @@
 @section('content')
 
   @php
+    $roleName = auth()->user()?->role?->name ?? '';
+    $panelPrefix = strcasecmp($roleName, 'HR') === 0 ? 'HR' : 'admin';
+    $storeAction = strcasecmp($roleName, 'Employee') === 0
+      ? route('employees.leave-application.store')
+      : url('/' . $panelPrefix . '/leave-application');
+
     $allowEmployeeSelection = $allowEmployeeSelection ?? true;
     $initialEmployee = $initialEmployee ?? null;
     $initialEmployeeInfo = $initialEmployee ? [
@@ -61,10 +67,14 @@
       <div>
         <h4 class="fw-bold mb-0" style="color:#696cff;">Application for Leave</h4>
         <small class="text-muted">RBH Form No. 1 — Fill out all required fields completely.</small>
-      </div>
+  </div>
+
+  <script>
+    window.BACKOFFICE_API_BASE = "{{ url('/api') }}";
+  </script>
     </div>
 
-    <form action="{{ route('leave-application-store') }}" method="POST" id="leaveAppForm">
+    <form action="{{ $storeAction }}" method="POST" id="leaveAppForm">
       @csrf
       {{-- Synced by JS (refreshTotal) before every submit --}}
       <input type="hidden" name="total_days" id="hiddenTotalDays" value="0">

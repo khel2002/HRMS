@@ -104,13 +104,16 @@
       "menuHeader": "Payroll"
     },
     {
-      "url": "/admin/pay-slip",
-      "name": "Pay Slip",
+      "url": "/admin/payroll/salary-settings",
+      "name": "Employees Salary Setting",
       "icon": "menu-icon icon-base ri ri-money-dollar-circle-line",
-      "slug": "pay-slip"
+      "slug": "salary-settings.index"
     },
     {
-      "menuHeader": "Application for leave"
+      "url": "/admin/payslip/payslip-form",
+      "name": "Pay Slip",
+      "icon": "menu-icon icon-base ri ri-money-dollar-circle-line",
+      "slug": "payslip.index"
     }
   ]
 }

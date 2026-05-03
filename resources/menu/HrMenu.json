@@ -1,0 +1,110 @@
+{
+  "menu": [
+    {
+      "url": "/HR/dashboard",
+      "name": "Dashboard",
+      "icon": "menu-icon icon-base ri ri-home-smile-line",
+      "slug": "HR.Dashboard"
+    },
+    {
+      "menuHeader": "Employee Management"
+    },
+    {
+      "url": "/HR/employees",
+      "name": "Employees",
+      "icon": "menu-icon icon-base ri ri-team-line",
+      "slug": "hr.employees.index"
+    },
+    {
+      "url": "/HR/employees/registration",
+      "name": "Employees Registration",
+      "icon": "menu-icon icon-base ri ri-user-add-line",
+      "slug": "hr.employee-registration"
+    },
+    {
+      "url": "HR/employees/facial-recognition/registration",
+      "name": "Employees Facial Recognition",
+      "icon": "menu-icon icon-base ri ri-time-line",
+      "slug": "hr.employee-facial-registration"
+    },
+    {
+      "menuHeader": "Attendance & Request"
+    },
+    {
+      "url": "/HR/attendance-report",
+      "name": "Attendance Report",
+      "icon": "menu-icon icon-base ri ri-calendar-todo-line",
+      "slug": ""
+    },
+    {
+      "url": "face-recognition-login",
+      "name": "DTR Attendance",
+      "icon": "menu-icon icon-base ri ri-time-line",
+      "slug": "face-recognition-login"
+    },
+    {
+      "url": "/HR/itinerary-slip",
+      "name": "Itinerary Slip",
+      "icon": "menu-icon icon-base ri ri-map-pin-line",
+      "slug": "itinerary-slip"
+    },
+    {
+      "name": "Leave",
+      "icon": "menu-icon icon-base ri ri-calendar-event-line",
+      "slug": "leave",
+      "submenu": [
+        {
+          "url": "HR/leave-summary",
+          "name": "Leave Summary",
+          "icon": "menu-icon icon-base ri ri-list-view",
+          "slug": "hr.leave-summary"
+        },
+        {
+          "url": "HR/leave-application",
+          "name": "Leave Application Form",
+          "icon": "menu-icon icon-base ri ri-calendar-close-line",
+          "slug": "hr.leave-application-form"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Employment Records"
+    },
+    {
+      "url": "/HR/service-record",
+      "name": "Service Record",
+      "icon": "menu-icon icon-base ri ri-file-list-3-line",
+      "slug": "service-record"
+    },
+    {
+      "url": "/HR/service-contract",
+      "name": "Service Contract",
+      "icon": "menu-icon icon-base ri ri-file-text-line",
+      "slug": "service-contract"
+    },
+    {
+      "url": "/HR/seminars-attended",
+      "name": "Seminars Attended",
+      "icon": "menu-icon icon-base ri ri-presentation-line",
+      "slug": "seminars-attended"
+    },
+    {
+      "url": "/HR/evaluation-rating",
+      "name": "Evaluation Rating",
+      "icon": "menu-icon icon-base ri ri-star-line",
+      "slug": "evaluation-rating"
+    },
+    {
+      "menuHeader": "Payroll"
+    },
+    {
+      "url": "/HR/pay-slip",
+      "name": "Pay Slip",
+      "icon": "menu-icon icon-base ri ri-money-dollar-circle-line",
+      "slug": "pay-slip"
+    },
+    {
+      "menuHeader": "Application for leave"
+    }
+  ]
+}

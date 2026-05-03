@@ -2,6 +2,9 @@
 @section('title', 'Employee — ' . $employee->last_name . ', ' . $employee->first_name)
 
 @section('content')
+  @php
+    $panelPrefix = strcasecmp(auth()->user()?->role?->name ?? '', 'HR') === 0 ? 'HR' : 'admin';
+  @endphp
 
   {{-- ══════════════════════════════════════════════════════ TOAST --}}
   @if (session('success') || session('error'))
@@ -23,7 +26,7 @@
   {{-- ══════════════════════════════════════════════════════ HERO --}}
   <div class="emp-hero mb-4">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-      <a href="{{ route('employees-index') }}" class="btn btn-sm btn-outline-light">
+      <a href="{{ url('/' . $panelPrefix . '/employees') }}" class="btn btn-sm btn-outline-light">
         <i class="ri ri-arrow-left-line me-1"></i> Back to List
       </a>
     </div>

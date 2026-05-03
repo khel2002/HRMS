@@ -57,4 +57,18 @@ class User extends Authenticatable
   {
     return $this->belongsTo(Employee::class, 'employee_id');
   }
+  public function preparedPayrollPeriods()
+  {
+    return $this->hasMany(PayrollPeriod::class, 'prepared_by_user_id');
+  }
+
+  public function approvedPayrollPeriods()
+  {
+    return $this->hasMany(PayrollPeriod::class, 'approved_by_user_id');
+  }
+
+  public function releasedPayrollPeriods()
+  {
+    return $this->hasMany(PayrollPeriod::class, 'released_by_user_id');
+  }
 }

@@ -2,6 +2,9 @@
 @section('title', 'Employees')
 
 @section('content')
+  @php
+    $panelPrefix = strcasecmp(auth()->user()?->role?->name ?? '', 'HR') === 0 ? 'HR' : 'admin';
+  @endphp
 
   {{-- ══════════════════════════════════════════════════════
        TOAST NOTIFICATION (top-right, auto-dismisses)
@@ -30,7 +33,7 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pb-3">
           <div class="d-flex gap-2 flex-wrap align-items-center">
             {{-- Search --}}
-            <form method="GET" action="{{ route('employees-index') }}"
+            <form method="GET" action="{{ url('/' . $panelPrefix . '/employees') }}"
               class="d-flex gap-2 flex-wrap align-items-center">
               <div class="input-group input-group-sm" style="width: 210px;">
                 <input type="text" name="search" id="searchTable" class="form-control border-end-0"
@@ -53,7 +56,7 @@
           </div>
 
           <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('employee-registration') }}" class="btn btn-sm btn-primary" style="font-weight: 500;">
+            <a href="{{ url('/' . $panelPrefix . '/employees/registration') }}" class="btn btn-sm btn-primary" style="font-weight: 500;">
               <i class="ri ri-add-line me-1"></i> Add Employee
             </a>
           </div>
@@ -103,12 +106,12 @@
                 <td class="text-center align-middle">
                   <div class="d-flex justify-content-center gap-1">
 
-                    <a href="{{ route('employee-show', $encryptedId) }}"
+                    <a href="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId) }}"
                       class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="View">
                       <i class="icon-base ri ri-eye-line"></i>
                     </a>
 
-                    <a href="{{ route('employee-edit', $encryptedId) }}"
+                    <a href="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId . '/edit') }}"
                       class="btn btn-sm btn-icon btn-text-secondary rounded-pill" title="Edit">
                       <i class="icon-base ri ri-edit-line"></i>
                     </a>
@@ -123,7 +126,7 @@
                         {{-- Status change --}}
                         @foreach (['active', 'inactive', 'suspended'] as $s)
                           @if (($emp->status ?? 'active') !== $s)
-                            <form method="POST" action="{{ route('employee-status', $encryptedId) }}">
+                            <form method="POST" action="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId . '/stat') }}">
                               @csrf @method('PATCH')
                               <input type="hidden" name="status" value="{{ $s }}">
                               <button type="submit" class="dropdown-item">
@@ -136,7 +139,7 @@
 
                         <div class="dropdown-divider"></div>
 
-                        <form method="POST" action="{{ route('employee-destroy', $encryptedId) }}"
+                        <form method="POST" action="{{ url('/' . $panelPrefix . '/employees/' . $encryptedId) }}"
                           id="delete-form-{{ $emp->id }}">
                           @csrf @method('DELETE')
                           <button type="button" class="dropdown-item text-danger"

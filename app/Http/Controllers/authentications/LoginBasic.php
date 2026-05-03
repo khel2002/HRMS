@@ -4,6 +4,7 @@ namespace App\Http\Controllers\authentications;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\LeaveApplication;
 use App\Models\LogImage;
 use App\Models\UserLogs;
 use Carbon\Carbon;
@@ -21,7 +22,6 @@ class LoginBasic extends Controller
 
   public function authLogin(Request $request)
   {
-
 
     $credentials = $request->validate([
       'username' => 'required',
@@ -47,7 +47,7 @@ class LoginBasic extends Controller
       // Redirect by role
       return match ($user->role?->name) {
         'Admin' => redirect()->route('dashboard'),
-        'HR'    => redirect()->route('dashboard'),
+        'HR'    => redirect()->route('HR.Dashboard'),
         'Employee' => redirect()->route('employees.dashboard'),
       };
     }
@@ -59,6 +59,33 @@ class LoginBasic extends Controller
     ])->withInput();
   }
 
+  public function HRDashboard()
+  {
+    $today = now()->toDateString();
+
+    $totalEmployees = Employee::count();
+    $activeEmployees = Employee::where('status', 'active')->count();
+
+    $pendingLeaveRequests = LeaveApplication::where('remarks', 'pending')->count();
+    $onLeaveToday = LeaveApplication::where('remarks', 'approved')
+      ->whereDate('start_date', '<=', $today)
+      ->whereDate('end_date', '>=', $today)
+      ->count();
+
+    $recentPendingLeaves = LeaveApplication::with(['employee', 'leaveType'])
+      ->where('remarks', 'pending')
+      ->orderByDesc('date_filed')
+      ->limit(5)
+      ->get();
+
+    return view('content.HR.dashboard.hr-dashboard', compact(
+      'totalEmployees',
+      'activeEmployees',
+      'pendingLeaveRequests',
+      'onLeaveToday',
+      'recentPendingLeaves'
+    ));
+  }
 
   public function employeeDashboard()
   {

@@ -1,0 +1,601 @@
+/* ============================================================
+   salary-settings.css
+   Payroll — Employee Salary Settings
+   Scoped with ss- prefix to avoid conflicts with Materio.
+   Place in: public/assets/css/salary-settings.css
+   ============================================================ */
+
+/* ── Layout ───────────────────────────────────────────────── */
+.ss-layout {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+.ss-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8e8e8;
+}
+.ss-section:last-of-type {
+  border-bottom: none;
+}
+
+.ss-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin-bottom: 16px;
+}
+.ss-section-title i {
+  color: #696cff;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.ss-section-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Labels ───────────────────────────────────────────────── */
+.ss-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6d6d6d;
+  margin-bottom: 5px;
+}
+.ss-required {
+  color: #ea5455;
+}
+.ss-auto-tag {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: #a8aaae;
+  background: #f4f5fb;
+  border: 1px solid #e8e8e8;
+  padding: 1px 6px;
+  border-radius: 20px;
+}
+
+/* ── Base Input ───────────────────────────────────────────── */
+.ss-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 13.5px;
+  color: #2d2d2d;
+  background: #fff;
+  outline: none;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+  appearance: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.ss-input:focus {
+  border-color: #696cff;
+  box-shadow: 0 0 0 3px rgba(105, 108, 255, 0.12);
+}
+.ss-input.ss-readonly,
+.ss-input[readonly] {
+  background: #f8f8fc;
+  color: #888;
+  cursor: default;
+}
+.ss-input::placeholder {
+  color: #b0b0b0;
+}
+
+/* Remove number arrows */
+.ss-input[type='number']::-webkit-inner-spin-button,
+.ss-input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+.ss-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Validation */
+.ss-input.is-invalid {
+  border-color: #ea5455 !important;
+  box-shadow: 0 0 0 3px rgba(234, 84, 85, 0.12) !important;
+}
+.ss-field-error {
+  font-size: 11px;
+  color: #ea5455;
+  margin-top: 3px;
+  display: block;
+}
+
+/* ── Currency Input ───────────────────────────────────────── */
+.ss-input-currency {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ss-currency {
+  position: absolute;
+  left: 10px;
+  font-size: 12.5px;
+  color: #a8aaae;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 1;
+}
+.ss-input-currency .ss-input {
+  padding-left: 22px;
+}
+
+/* ── Input with Icon ──────────────────────────────────────── */
+.ss-input-icon {
+  position: relative;
+}
+.ss-icon-left {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8aaae;
+  font-size: 15px;
+  pointer-events: none;
+  z-index: 1;
+}
+.ss-input-icon .ss-input {
+  padding-left: 34px;
+}
+.ss-icon-right {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8aaae;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+/* ── Employee Select ──────────────────────────────────────── */
+.ss-employee-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #dcdfe6;
+  border-radius: 6px;
+  height: 38px;
+  padding: 0 10px 0 8px;
+  background: #fff;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.ss-employee-select:focus-within {
+  border-color: #696cff;
+  box-shadow: 0 0 0 3px rgba(105, 108, 255, 0.12);
+}
+.ss-emp-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #696cff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ss-select-inner {
+  flex: 1;
+  border: none;
+  background: transparent;
+  height: 100%;
+  padding: 0;
+  font-size: 13.5px;
+  color: #2d2d2d;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  font-family: inherit;
+}
+.ss-chevron {
+  color: #a8aaae;
+  font-size: 16px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Select with Icon ─────────────────────────────────────── */
+.ss-select-wrap {
+  position: relative;
+}
+.ss-sel-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8aaae;
+  font-size: 15px;
+  pointer-events: none;
+  z-index: 1;
+}
+.ss-select-wrap .ss-input.ss-select {
+  padding-left: 32px;
+  padding-right: 28px;
+  cursor: pointer;
+}
+.ss-sel-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a8aaae;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* ── Status Badge ─────────────────────────────────────────── */
+.ss-status-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ss-status-active {
+  background: #e8f9ee;
+  color: #28c76f;
+}
+.ss-status-inactive {
+  background: #f5f5f5;
+  color: #a8aaae;
+}
+
+/* ── Toggle ───────────────────────────────────────────────── */
+.ss-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+}
+.ss-toggle {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.ss-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.ss-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #d5d5d5;
+  border-radius: 24px;
+  transition: background 0.2s;
+}
+.ss-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.ss-toggle input:checked + .ss-slider {
+  background: #696cff;
+}
+.ss-toggle input:checked + .ss-slider::before {
+  transform: translateX(18px);
+}
+.ss-toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d2d2d;
+}
+
+/* ── Add Item Button ──────────────────────────────────────── */
+.ss-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1.5px solid #696cff;
+  border-radius: 6px;
+  color: #696cff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.ss-btn-add:hover {
+  background: #eef2ff;
+}
+
+/* ── Recurring Table ──────────────────────────────────────── */
+.ss-table-wrap {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ss-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ss-table thead tr {
+  background: #f8f8fc;
+}
+.ss-table th {
+  padding: 9px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a8aaae;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #e8e8e8;
+}
+.ss-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f5;
+  vertical-align: middle;
+}
+.ss-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.ss-table tbody tr:hover {
+  background: #fafafe;
+}
+.ss-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ss-item-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ss-item-name i {
+  color: #a8aaae;
+  font-size: 14px;
+}
+
+/* ── Badges ───────────────────────────────────────────────── */
+.ss-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.ss-badge-earning {
+  background: #e8f9ee;
+  color: #28c76f;
+}
+.ss-badge-deduction {
+  background: #fff1f1;
+  color: #ea5455;
+}
+
+.ss-badge-category {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #eef2ff;
+  color: #696cff;
+}
+.ss-badge-category.loan {
+  background: #fff3e0;
+  color: #ff9f43;
+}
+
+.ss-badge-apply {
+  display: inline-flex;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #f0f4ff;
+  color: #4a5eb8;
+  white-space: nowrap;
+}
+
+/* ── Action Buttons ───────────────────────────────────────── */
+.ss-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ss-btn-action {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8aaae;
+  font-size: 15px;
+  transition: all 0.15s;
+}
+.ss-btn-action.edit:hover {
+  background: #eef2ff;
+  border-color: #696cff;
+  color: #696cff;
+}
+.ss-btn-action.del:hover {
+  background: #fff1f1;
+  border-color: #ea5455;
+  color: #ea5455;
+}
+
+/* ── Form Actions ─────────────────────────────────────────── */
+.ss-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 24px;
+}
+.ss-btn-save {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Preview Sidebar ──────────────────────────────────────── */
+.ss-preview {
+  position: sticky;
+  top: 80px;
+}
+
+.ss-preview-rows {
+  display: flex;
+  flex-direction: column;
+}
+.ss-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f4f4f8;
+}
+.ss-preview-row:last-child {
+  border-bottom: none;
+}
+.ss-prev-label {
+  font-size: 12px;
+  color: #a8aaae;
+}
+.ss-prev-val {
+  font-size: 13px;
+  color: #2d2d2d;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Annual Card ──────────────────────────────────────────── */
+.ss-annual-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #eef2ff;
+  border-radius: 8px;
+  border: 1px solid #d8dcff;
+}
+.ss-annual-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #696cff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.ss-annual-label {
+  font-size: 11.5px;
+  color: #696cff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+.ss-annual-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #696cff;
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+}
+
+/* ── Reminder Card ────────────────────────────────────────── */
+.ss-reminder {
+  padding: 13px;
+  background: #fff8ee;
+  border-radius: 8px;
+  border: 1px solid #ffd9a0;
+}
+.ss-reminder-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ff9f43;
+  margin-bottom: 8px;
+}
+.ss-reminder-list {
+  list-style: disc;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ss-reminder-list li {
+  font-size: 11.5px;
+  color: #7a5800;
+  line-height: 1.5;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .ss-layout {
+    grid-template-columns: 1fr 270px;
+  }
+}
+@media (max-width: 992px) {
+  .ss-layout {
+    grid-template-columns: 1fr;
+  }
+  .ss-preview {
+    position: static;
+  }
+}
+@media (max-width: 576px) {
+  .ss-section {
+    padding: 16px;
+  }
+  .ss-form-actions {
+    flex-wrap: wrap;
+  }
+}

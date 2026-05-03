@@ -23,6 +23,17 @@ use Throwable;
 class EmployeesRegistrationController extends Controller
 {
 
+  private function panelPrefix(): string
+  {
+    $roleName = auth()->user()?->role?->name ?? '';
+    return strcasecmp($roleName, 'HR') === 0 ? 'HR' : 'admin';
+  }
+
+  private function panelUrl(string $path): string
+  {
+    $path = '/' . ltrim($path, '/');
+    return '/' . $this->panelPrefix() . $path;
+  }
 
   // ── Validation rules ──────────────────────────────────────────────────────
 
@@ -134,13 +145,13 @@ class EmployeesRegistrationController extends Controller
     try {
       $id = (int) Crypt::decryptString($encryptedId);
     } catch (DecryptException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+      return redirect()->to($this->panelUrl('/employees'))->with('error', 'Employee record not found.');
     }
 
     try {
       return $withRelations ? $this->findWithRelations($id) : Employee::findOrFail($id);
     } catch (ModelNotFoundException) {
-      return redirect()->route('employees-index')->with('error', 'Employee record not found.');
+      return redirect()->to($this->panelUrl('/employees'))->with('error', 'Employee record not found.');
     }
   }
 
@@ -325,7 +336,7 @@ class EmployeesRegistrationController extends Controller
         $this->saveRelated($employee, $request);
       });
 
-      return redirect()->route('employees-index')->with('success', 'Employee successfully registered.');
+      return redirect()->to($this->panelUrl('/employees'))->with('success', 'Employee successfully registered.');
     } catch (Throwable $e) {
       Log::error('Employee store failed', [
         'error' => $e->getMessage(),
@@ -393,8 +404,7 @@ class EmployeesRegistrationController extends Controller
         $this->saveRelated($employee, $request);
       });
 
-      return redirect()
-        ->route('employee-show', Crypt::encryptString($employee->id))
+      return redirect()->to($this->panelUrl('/employees/' . Crypt::encryptString($employee->id)))
         ->with('success', 'Employee record updated successfully.');
     } catch (Throwable $e) {
       Log::error('Employee update failed', [
@@ -425,11 +435,11 @@ class EmployeesRegistrationController extends Controller
     try {
       $employee->delete();
 
-      return redirect()->route('employees-index')->with('success', 'Employee has been deleted.');
+      return redirect()->to($this->panelUrl('/employees'))->with('success', 'Employee has been deleted.');
     } catch (Throwable $e) {
       Log::error('Employee delete failed', ['id' => $employee->id, 'error' => $e->getMessage()]);
 
-      return redirect()->route('employees-index')->with('error', 'Something went wrong while deleting the employee.');
+      return redirect()->to($this->panelUrl('/employees'))->with('error', 'Something went wrong while deleting the employee.');
     }
   }
 

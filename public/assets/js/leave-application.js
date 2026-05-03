@@ -3,6 +3,7 @@
 (function () {
   // ── CSRF token ────────────────────────────────────────────────
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+  const API_BASE = String(window.BACKOFFICE_API_BASE ?? '/api').replace(/\/+$/, '');
   const LEAVE_APP_CONFIG = window.LEAVE_APP_CONFIG ?? {};
   const ALLOW_EMPLOYEE_SELECTION = LEAVE_APP_CONFIG.allowEmployeeSelection ?? true;
   const INITIAL_EMPLOYEE = LEAVE_APP_CONFIG.initialEmployee ?? null;
@@ -115,7 +116,7 @@
     spinner.style.display = 'inline-flex';
     panel.style.display = 'block';
 
-    fetch('/admin/api/employees/' + encodeURIComponent(employeeId) + '/leave-balances', {
+    fetch(API_BASE + '/employees/' + encodeURIComponent(employeeId) + '/leave-balances', {
       headers: { Accept: 'application/json', 'X-CSRF-TOKEN': CSRF }
     })
       .then(function (res) {
@@ -367,7 +368,7 @@
       closeDropdown();
       return;
     }
-    fetch('/admin/api/employees/search?q=' + encodeURIComponent(q), {
+    fetch(API_BASE + '/employees/search?q=' + encodeURIComponent(q), {
       headers: { Accept: 'application/json', 'X-CSRF-TOKEN': CSRF }
     })
       .then(res => res.json())

@@ -1,0 +1,687 @@
+/* ============================================================
+   payslip.css — Employee Payslip UI
+   Materio-aligned, scoped with ps- prefix.
+   Place in: public/assets/css/payslip.css
+   ============================================================ */
+
+/* ── Variables ────────────────────────────────────────────── */
+:root {
+  --ps-primary: #696cff;
+  --ps-primary-soft: #eef2ff;
+  --ps-primary-dark: #5a5dbf;
+  --ps-earning: #28c76f;
+  --ps-earning-soft: #e8f9ee;
+  --ps-deduction: #ea5455;
+  --ps-deduct-soft: #fff1f1;
+  --ps-net: #28c76f;
+  --ps-net-soft: #e8f9ee;
+  --ps-warning: #ff9f43;
+  --ps-border: #e8e8e8;
+  --ps-muted: #a8aaae;
+  --ps-text: #2d2d2d;
+  --ps-text-light: #6d6d6d;
+  --ps-surface: #ffffff;
+  --ps-bg: #f4f5fb;
+  --ps-radius: 10px;
+  --ps-radius-sm: 6px;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.ps-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Header Card ──────────────────────────────────────────── */
+.ps-header-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ps-header-bg {
+  height: 80px;
+  background: linear-gradient(135deg, #696cff 0%, #8a5cf6 60%, #c084fc 100%);
+  border-radius: var(--ps-radius) var(--ps-radius) 0 0;
+}
+
+.ps-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #696cff, #8a5cf6);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 14px rgba(105, 108, 255, 0.35);
+  flex-shrink: 0;
+  margin-top: -32px;
+  letter-spacing: 0.02em;
+}
+
+.ps-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--ps-text-light);
+  background: var(--ps-bg);
+  border: 1px solid var(--ps-border);
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+.ps-meta-chip i {
+  font-size: 12px;
+  color: var(--ps-primary);
+}
+
+.ps-period-info {
+  text-align: right;
+}
+.ps-period-label {
+  font-size: 10.5px;
+  color: var(--ps-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ps-period-val {
+  font-size: 13px;
+  color: var(--ps-text);
+  font-weight: 600;
+}
+
+/* ── Status Badges ────────────────────────────────────────── */
+.ps-badge-paid {
+  background: #e8f9ee;
+  color: #28c76f;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+.ps-badge-pending {
+  background: #fff3e0;
+  color: #ff9f43;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+.ps-badge-processing {
+  background: var(--ps-primary-soft);
+  color: var(--ps-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Cutoff Tab Nav ───────────────────────────────────────── */
+.ps-tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--ps-border);
+  background: #f8f8fc;
+  border-radius: var(--ps-radius) var(--ps-radius) 0 0;
+  overflow: hidden;
+}
+
+.ps-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.18s;
+  text-align: left;
+  font-family: inherit;
+}
+.ps-tab-btn i {
+  font-size: 1.4rem;
+  color: var(--ps-muted);
+  flex-shrink: 0;
+  transition: color 0.18s;
+}
+.ps-tab-btn:hover {
+  background: var(--ps-primary-soft);
+}
+.ps-tab-btn.active {
+  background: #fff;
+  border-bottom-color: var(--ps-primary);
+}
+.ps-tab-btn.active i {
+  color: var(--ps-primary);
+}
+
+.ps-tab-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ps-text);
+}
+.ps-tab-sub {
+  font-size: 11px;
+  color: var(--ps-muted);
+  margin-top: 1px;
+}
+.ps-tab-btn.active .ps-tab-title {
+  color: var(--ps-primary);
+}
+
+/* ── Tab Panels ───────────────────────────────────────────── */
+.ps-tab-panel {
+  display: none;
+}
+.ps-tab-panel.active {
+  display: block;
+}
+
+/* ── Period Banner ────────────────────────────────────────── */
+.ps-period-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--ps-primary-soft);
+  border: 1px solid #d8dcff;
+  border-radius: var(--ps-radius-sm);
+  font-size: 12.5px;
+  color: var(--ps-primary);
+}
+.ps-period-banner i {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.ps-period-banner.variant {
+  background: var(--ps-earning-soft);
+  border-color: #b2e8c9;
+  color: var(--ps-earning);
+}
+
+/* ── Section Headings ─────────────────────────────────────── */
+.ps-section-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid;
+}
+.ps-section-head.earnings {
+  color: var(--ps-earning);
+  border-color: var(--ps-earning-soft);
+}
+.ps-section-head.deductions {
+  color: var(--ps-deduction);
+  border-color: var(--ps-deduct-soft);
+}
+.ps-section-head i {
+  font-size: 16px;
+}
+
+/* ── Line Table ───────────────────────────────────────────── */
+.ps-line-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-line-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px dashed #f0f0f5;
+  gap: 8px;
+}
+.ps-line-row:last-child {
+  border-bottom: none;
+}
+.ps-line-row.highlight {
+  border-bottom: none;
+  border-top: 2px solid var(--ps-border);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.ps-line-label {
+  font-size: 13px;
+  color: var(--ps-text-light);
+}
+.ps-line-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-line-val {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ps-line-val.earning {
+  color: var(--ps-earning);
+}
+.ps-line-val.deduction {
+  color: var(--ps-deduction);
+}
+
+/* ── Contribution Badges ──────────────────────────────────── */
+.ps-contrib-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.ps-contrib-badge.sss {
+  background: #e8eeff;
+  color: #4a5eb8;
+}
+.ps-contrib-badge.phic {
+  background: #e8f9ee;
+  color: #28c76f;
+}
+.ps-contrib-badge.pagibig {
+  background: #fff3e0;
+  color: #ff9f43;
+}
+.ps-contrib-badge.tax {
+  background: #fff1f1;
+  color: #ea5455;
+}
+
+/* ── OT Badge ─────────────────────────────────────────────── */
+.ps-ot-badge {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  background: #fff3e0;
+  color: #ff9f43;
+  flex-shrink: 0;
+}
+
+/* ── Line Group Label ─────────────────────────────────────── */
+.ps-line-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ps-muted);
+  padding: 10px 0 4px;
+}
+.ps-line-group-label:first-child {
+  padding-top: 0;
+}
+
+/* ── Net Pay Bar ──────────────────────────────────────────── */
+.ps-net-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #e8f9ee 0%, #d0f4e0 100%);
+  border: 1px solid #b2e8c9;
+  border-radius: var(--ps-radius-sm);
+  gap: 12px;
+}
+.ps-net-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a7a45;
+}
+.ps-net-sub {
+  font-size: 11.5px;
+  color: #3da866;
+  margin-top: 2px;
+}
+.ps-net-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ps-earning);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Attendance Cards ─────────────────────────────────────── */
+.ps-att-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 10px;
+  background: #f8f8fc;
+  border-radius: var(--ps-radius-sm);
+  border: 1px solid var(--ps-border);
+  text-align: center;
+}
+.ps-att-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+}
+.ps-att-icon.present {
+  background: var(--ps-earning-soft);
+  color: var(--ps-earning);
+}
+.ps-att-icon.absent {
+  background: var(--ps-deduct-soft);
+  color: var(--ps-deduction);
+}
+.ps-att-icon.late {
+  background: #fff3e0;
+  color: var(--ps-warning);
+}
+.ps-att-icon.ot {
+  background: var(--ps-primary-soft);
+  color: var(--ps-primary);
+}
+.ps-att-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ps-text);
+  line-height: 1;
+}
+.ps-att-label {
+  font-size: 11px;
+  color: var(--ps-muted);
+  margin-top: 3px;
+}
+
+/* ── Table Styles ─────────────────────────────────────────── */
+.ps-th {
+  padding: 9px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ps-muted);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--ps-border) !important;
+}
+.ps-td {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--ps-text);
+  border-bottom: 1px solid #f0f0f5 !important;
+  vertical-align: middle;
+}
+.table tbody tr:last-child .ps-td {
+  border-bottom: none !important;
+}
+.table tbody tr:hover {
+  background: #fafafe;
+}
+
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+.ps-sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+/* Net Pay Hero Card */
+.ps-net-hero {
+  background: linear-gradient(160deg, #e8f9ee 0%, #f0fff6 100%);
+  border-color: #b2e8c9 !important;
+  overflow: hidden;
+  position: relative;
+}
+.ps-net-hero::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: rgba(40, 199, 111, 0.08);
+  border-radius: 50%;
+}
+.ps-net-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ps-earning);
+  color: #fff;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+.ps-net-hero-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #3da866;
+  margin-top: 8px;
+}
+.ps-net-hero-sub {
+  font-size: 11px;
+  color: #6abf8a;
+  margin-top: 2px;
+}
+.ps-net-hero-amount {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: var(--ps-earning);
+  letter-spacing: -0.5px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Summary rows */
+.ps-summary-rows {
+  display: flex;
+  flex-direction: column;
+}
+.ps-sum-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ps-muted);
+  padding: 6px 0 2px;
+}
+.ps-sum-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px dashed #f0f0f5;
+}
+.ps-sum-row:last-child {
+  border-bottom: none;
+}
+.ps-sum-row.total {
+  border-bottom: none;
+  border-top: 1px solid var(--ps-border);
+  margin-top: 3px;
+  padding-top: 7px;
+}
+.ps-sum-row.grand {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ps-border);
+}
+.ps-sum-label {
+  font-size: 12px;
+  color: var(--ps-muted);
+}
+.ps-sum-val {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ps-sum-val.earning {
+  color: var(--ps-earning);
+  font-weight: 600;
+}
+.ps-sum-val.deduction {
+  color: var(--ps-deduction);
+  font-weight: 600;
+}
+.ps-sum-val.net {
+  color: var(--ps-net);
+}
+
+/* Period Info rows */
+.ps-info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ps-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+.ps-info-label {
+  color: var(--ps-muted);
+}
+.ps-info-val {
+  color: var(--ps-text);
+  font-weight: 600;
+}
+
+/* ── Email Modal ──────────────────────────────────────────── */
+.ps-email-attach {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8f8fc;
+  border: 1px solid var(--ps-border);
+  border-radius: var(--ps-radius-sm);
+  font-size: 12.5px;
+  color: var(--ps-text-light);
+  gap: 4px;
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+.ps-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  padding: 12px 18px;
+  border-radius: var(--ps-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s;
+  max-width: 320px;
+}
+.ps-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+.ps-toast.success {
+  background: var(--ps-earning-soft);
+  color: #1a7a45;
+  border: 1px solid #b2e8c9;
+}
+.ps-toast.info {
+  background: var(--ps-primary-soft);
+  color: var(--ps-primary-dark);
+  border: 1px solid #c0c4ff;
+}
+.ps-toast.error {
+  background: var(--ps-deduct-soft);
+  color: #c62828;
+  border: 1px solid #ffc5c5;
+}
+
+/* ── Print Styles ─────────────────────────────────────────── */
+@media print {
+  .layout-navbar,
+  .layout-menu,
+  .breadcrumb,
+  .ps-sidebar,
+  .btn,
+  #emailModal,
+  .ps-toast {
+    display: none !important;
+  }
+  .ps-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .ps-tab-panel {
+    display: block !important;
+  }
+  .ps-tab-nav {
+    display: none !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  .container-xxl {
+    max-width: 100% !important;
+  }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .ps-layout {
+    grid-template-columns: 1fr 250px;
+    gap: 16px;
+  }
+}
+@media (max-width: 900px) {
+  .ps-layout {
+    grid-template-columns: 1fr;
+  }
+  .ps-sidebar {
+    position: static;
+  }
+  .ps-net-hero {
+    order: -1;
+  }
+}
+@media (max-width: 576px) {
+  .ps-tab-btn {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .ps-tab-sub {
+    display: none;
+  }
+  .ps-net-amount {
+    font-size: 1.2rem;
+  }
+}

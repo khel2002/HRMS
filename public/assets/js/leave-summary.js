@@ -2,7 +2,7 @@
 // All action functions are plain globals so onclick="fnName(id)" always resolves.
 
 // ── Config ─────────────────────────────────────────────────────────────────
-var LR_BASE = '/admin/api/leave-requests';
+var LR_BASE = (window.LEAVE_REQUESTS_BASE || window.LR_BASE || '/api/leave-requests').replace(/\/+$/, '');
 var LR_CSRF = ''; // filled on DOMContentLoaded
 
 // ── Tab state ───────────────────────────────────────────────────────────────
@@ -117,7 +117,9 @@ function lrActionCell(row) {
     '<i class="icon-base ri ri-eye-line"></i></button>';
 
   var pdfBtn =
-    '<a href="/admin/api/leave-requests/' +
+    '<a href="' +
+    LR_BASE +
+    '/' +
     id +
     '/pdf" target="_blank"' +
     ' class="btn btn-sm btn-icon btn-text-danger rounded-pill" title="Download PDF">' +
@@ -386,7 +388,9 @@ function lrPopulateModal(r, footer) {
   // Footer: Close button always shown; PDF button added for approved records
   var pdfLink =
     r.status === 'approved'
-      ? '<a href="/admin/api/leave-requests/' +
+      ? '<a href="' +
+        LR_BASE +
+        '/' +
         r.id +
         '/pdf" target="_blank"' +
         ' class="btn btn-danger btn-sm">' +

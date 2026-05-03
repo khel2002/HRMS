@@ -86,7 +86,7 @@
 
   {{-- Gender --}}
   <div class="col-md-3">
-    <label class="form-label">Gender <span class="text-danger">*</span></label>
+    <label class="form-label">Sex <span class="text-danger">*</span></label>
     <select name="gender" class="form-select @error('gender') is-invalid @enderror" required>
       <option value="">— Select —</option>
       @foreach (\App\Models\Employee::GENDERS as $g)

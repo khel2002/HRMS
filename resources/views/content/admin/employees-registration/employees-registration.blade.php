@@ -7,6 +7,9 @@
 @endsection
 
 @section('content')
+  @php
+    $panelPrefix = strcasecmp(auth()->user()?->role?->name ?? '', 'HR') === 0 ? 'HR' : 'admin';
+  @endphp
 
   @if ($errors->any())
     <div class="alert alert-danger mx-4 mt-3">
@@ -64,7 +67,7 @@
       {{-- ══════════════════════════════════
            FORM
       ══════════════════════════════════ --}}
-      <form id="wizardForm" method="POST" action="{{ route('employee-store') }}">
+      <form id="wizardForm" method="POST" action="{{ url('/' . $panelPrefix . '/employees') }}">
         @csrf
 
         <div class="card-body px-4 py-4">
@@ -108,7 +111,7 @@
           </button>
 
           <div class="ms-auto d-flex gap-2">
-            <a href="{{ route('employees-index') }}" class="btn btn-outline-secondary">Cancel</a>
+            <a href="{{ url('/' . $panelPrefix . '/employees') }}" class="btn btn-outline-secondary">Cancel</a>
             <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
               Next <i class="ri ri-arrow-right-line ms-1"></i>
             </button>
